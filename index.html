@@ -177,13 +177,45 @@ async function refreshAll(){
     setConnection(true,'متصل بالسحابة');
   }catch(e){console.error(e);setConnection(false,'تعذر الاتصال');}
 }
+let realtimeChannel=null;
+let refreshTimer=null;
 function setupRealtime(){
-  db.channel('library-live')
-  .on('postgres_changes',{event:'*',schema:'public',table:'books'},()=>refreshAll())
-  .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>refreshAll())
-  .on('postgres_changes',{event:'*',schema:'public',table:'order_items'},()=>refreshAll())
-  .on('postgres_changes',{event:'*',schema:'public',table:'payments'},()=>refreshAll())
-  .subscribe();
+  if(realtimeChannel) db.removeChannel(realtimeChannel);
+  realtimeChannel=db.channel('library-live')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'books'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'books'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'books'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'orders'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'orders'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'orders'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'order_items'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'order_items'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'order_items'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'payments'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'payments'},scheduleRealtimeRefresh)
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'payments'},scheduleRealtimeRefresh)
+    .subscribe((status)=>{
+      if(status==='SUBSCRIBED') setConnection(true,'متصل — تحديث لحظي');
+      else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT') setConnection(false,'تحديث لحظي غير متاح');
+    });
+}
+function scheduleRealtimeRefresh(){
+  if(suppressRefresh)return;
+  clearTimeout(refreshTimer);
+  refreshTimer=setTimeout(async()=>{
+    await refreshAll();
+    updateVisiblePage();
+  },150);
+}
+function updateVisiblePage(){
+  const active=document.querySelector('.page:not(.hidden)');
+  if(!active)return;
+  if(active.id==='home')renderHome();
+  else if(active.id==='orders')renderOrders();
+  else if(active.id==='inventory')renderInventory();
+  else if(active.id==='missing')renderMissing();
+  else if(active.id==='customers')renderCustomers();
+  renderLines();
 }
 
 function newOrder(){
