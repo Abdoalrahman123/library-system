@@ -7,890 +7,520 @@
 <style>
 :root{font-family:Segoe UI,Tahoma,Arial,sans-serif}
 *{box-sizing:border-box}
-body{margin:0;background:#f4f6f8;color:#20252b;font-family:var(--font,Segoe UI,Tahoma,Arial,sans-serif)}
-header{background:#173f5f;color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+body{margin:0;background:#f4f6f8;color:#20252b}
+header{background:#173f5f;color:#fff;padding:15px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 header h1{margin:0;font-size:22px}
-.status{font-size:13px}
-.status.ok{color:#a9efc4}.status.bad{color:#ffc2c2}
+.status{font-size:13px}.status.ok{color:#a9efc4}.status.bad{color:#ffc2c2}
 .wrap{max-width:1280px;margin:18px auto;padding:0 12px}
 nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 button{border:0;border-radius:8px;padding:9px 14px;cursor:pointer;background:#1f6feb;color:#fff;font-size:14px}
-button:hover{filter:brightness(.96)}
-button.green{background:#198754}
-button.gray{background:#6b7280}
-button.red{background:#c62828}
-button.orange{background:#b45309}
+button.green{background:#198754}button.gray{background:#6b7280}button.red{background:#c62828}button.orange{background:#b45309}
 button:disabled{opacity:.55;cursor:not-allowed}
 .card{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 2px 10px #0001}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.field{position:relative}
-.field label{display:block;font-size:13px;color:#555;margin-bottom:4px}
-input,select{width:100%;padding:9px;border:1px solid #ccd2d8;border-radius:8px;font-size:14px;background:#fff}
+.field{position:relative}.field label{display:block;font-size:13px;color:#555;margin-bottom:4px}
+input{width:100%;padding:9px;border:1px solid #ccd2d8;border-radius:8px;font-size:14px;background:#fff}
 input:focus{outline:2px solid #d7e7ff;border-color:#7aaaf7}
 input[readonly]{background:#f7f7f7}
 table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{padding:9px;border-bottom:1px solid #e6e9ed;text-align:right;vertical-align:top}
-th{background:#edf2f7}
-.warn{color:#b42318;font-weight:700}
-.ok{color:#137333;font-weight:700}
-.dangerrow{background:#ffe8e8}
-.actions{display:flex;gap:6px;flex-wrap:wrap}
-.summary{display:flex;gap:10px;flex-wrap:wrap}
-.metric{background:#f8fafc;border:1px solid #e3e8ef;padding:11px;border-radius:10px;min-width:150px}
-.hidden{display:none!important}
-.muted{font-size:13px;color:#6b7280}
+th{background:#edf2f7}.warn{color:#b42318;font-weight:700}.ok{color:#137333;font-weight:700}
+.dangerrow{background:#ffe8e8}.actions{display:flex;gap:6px;flex-wrap:wrap}
+.summary{display:flex;gap:10px;flex-wrap:wrap}.metric{background:#f8fafc;border:1px solid #e3e8ef;padding:11px;border-radius:10px;min-width:150px}
+.hidden{display:none!important}.muted{font-size:13px;color:#6b7280}
 .suggest{position:absolute;right:0;left:0;top:100%;background:#fff;border:1px solid #ccc;z-index:99;max-height:240px;overflow:auto;border-radius:8px;box-shadow:0 5px 15px #0002}
-.suggest div{padding:10px;cursor:pointer;border-bottom:1px solid #eee}
-.suggest div:hover{background:#f0f4f8}
-.pill{display:inline-block;padding:2px 7px;border-radius:999px;background:#eaf0f6;font-size:12px}
-.kbd{padding:2px 5px;border:1px solid #ccc;border-bottom-width:2px;border-radius:4px;font-size:12px;background:#fafafa}
+.suggest div{padding:10px;cursor:pointer;border-bottom:1px solid #eee}.suggest div:hover{background:#f0f4f8}
 @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header>
-  <h1>نظام المكتبة</h1>
-  <div id="connection" class="status">جارٍ الاتصال…</div>
+<h1>نظام المكتبة</h1>
+<div id="connection" class="status">جارٍ الاتصال…</div>
 </header>
-
 <div class="wrap">
 <nav>
-  <button onclick="startNewOrder()">طلب جديد</button>
-  <button onclick="show('orders')">الطلبات</button>
-  <button onclick="show('inventory')">المخزن</button>
-  <button onclick="show('missing')">النواقص</button>
-  <button onclick="show('customers')">العملاء</button>
+<button onclick="show('home')">الرئيسية</button>
+<button onclick="newOrder()">طلب جديد</button>
+<button onclick="show('orders')">الطلبات</button>
+<button onclick="show('inventory')">المخزن</button>
+<button onclick="show('missing')">النواقص</button>
+<button onclick="show('customers')">العملاء</button>
 </nav>
 
+<section id="home" class="page">
+<div class="card">
+<h2>الرئيسية</h2>
+<div class="summary">
+<div class="metric">عدد الكتب: <b id="homeBooks">0</b></div>
+<div class="metric">إجمالي الطلبات: <b id="homeOrders">0</b></div>
+<div class="metric">إجمالي النواقص: <b id="homeMissing">0</b></div>
+<div class="metric">إجمالي المدفوع: <b id="homePaid">0.00</b></div>
+</div>
+<p class="muted">من هنا تقدر تنتقل بسرعة للطلبات أو المخزن أو النواقص.</p>
+</div>
+</section>
 <section id="newOrder" class="page">
 <div class="card">
-  <h2 id="orderTitle">طلب جديد</h2>
-  <div class="grid">
-    <div class="field"><label>اسم العميل</label><input id="customer"></div>
-    <div class="field"><label>المدفوع</label><input id="paid" type="number" min="0" step="0.01" value="0"></div>
-    <div class="field"><label>ملاحظات</label><input id="notes"></div>
-    <div class="field"><label>رقم الطلب</label><input id="orderNo" readonly value="سيتم توليده تلقائيًا عند الحفظ"></div>
-  </div>
+<h2 id="orderTitle">طلب جديد</h2>
+<div class="grid">
+<div class="field"><label>اسم العميل</label><input id="customer"></div>
+<div class="field"><label>المدفوع</label><input id="paid" type="number" min="0" step="0.01" value="0"></div>
+<div class="field"><label>ملاحظات</label><input id="notes"></div>
+<div class="field"><label>رقم الطلب</label><input id="orderNo" readonly value="سيتم توليده تلقائيًا عند الحفظ"></div>
+</div>
 
-  <table>
-    <thead><tr><th>الكتاب</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>الحالة</th><th></th></tr></thead>
-    <tbody id="lines"></tbody>
-  </table>
+<table>
+<thead><tr><th>الكتاب</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>الحالة</th><th></th></tr></thead>
+<tbody id="lines"></tbody>
+</table>
+<div class="actions" style="margin-top:10px">
+<button class="green" onclick="addLine()">+ إضافة كتاب</button>
+</div>
 
-  <div class="actions" style="margin-top:10px">
-    <button class="green" onclick="addLine()">+ إضافة كتاب</button>
-  </div>
+<div class="summary" style="margin-top:14px">
+<div class="metric">الإجمالي: <b id="total">0.00</b></div>
+<div class="metric">المدفوع: <b id="paidView">0.00</b></div>
+<div class="metric">عليه: <b id="due">0.00</b></div>
+<div class="metric">له: <b id="credit">0.00</b></div>
+</div>
 
-  <div class="summary" style="margin-top:14px">
-    <div class="metric">الإجمالي: <b id="total">0.00</b></div>
-    <div class="metric">المدفوع: <b id="paidView">0.00</b></div>
-    <div class="metric">عليه: <b id="due">0.00</b></div>
-    <div class="metric">له: <b id="credit">0.00</b></div>
-  </div>
-
-  <div class="actions" style="margin-top:14px">
-    <button id="saveBtn" onclick="saveOrder()">حفظ الطلب</button>
-    <button class="gray" onclick="startNewOrder()">إلغاء</button>
-  </div>
-  <p class="muted">اكتب أي جزء من اسم الكتاب وسيظهر كل المطابق. اضغط على النتيجة لإدخال الاسم كاملًا. نفس الكتاب يتجمع تلقائيًا إذا تكرر داخل نفس الطلب.</p>
+<div class="actions" style="margin-top:14px">
+<button id="saveBtn" onclick="saveOrder()">حفظ الطلب</button>
+<button class="gray" onclick="newOrder()">إلغاء</button>
+</div>
+<p class="muted">اكتب حرفًا أو جزءًا من اسم الكتاب. اضغط على الاختيار لإدخاله. ولو الكتاب غير موجود، اكتب اسمه واضغط Enter فيتسجل فورًا ككتاب ناقص في المخزن. نفس الكتاب داخل الطلب يتجمع تلقائيًا.</p>
 </div>
 </section>
 
 <section id="orders" class="page hidden">
-<div class="card">
-  <h2>الطلبات</h2>
-  <input id="orderSearch" placeholder="ابحث برقم الطلب أو اسم العميل" oninput="renderOrders()">
-  <div id="ordersTable"></div>
+<div class="card"><h2>الطلبات</h2>
+<input id="orderSearch" placeholder="ابحث برقم الطلب أو اسم العميل" oninput="renderOrders()">
+<div id="ordersTable"></div>
 </div>
 </section>
 
 <section id="inventory" class="page hidden">
-<div class="card">
-  <h2>المخزن</h2>
-  <div class="grid">
-    <div class="field">
-      <label>اسم الكتاب</label>
-      <input id="invName" autocomplete="off" oninput="inventorySearch(this.value)" onfocus="inventorySearch(this.value)">
-      <div id="invSuggest" class="suggest hidden"></div>
-    </div>
-    <div class="field">
-      <label>الكمية الحالية في المخزن</label>
-      <input id="invQty" type="number" min="0" step="1">
-    </div>
-    <div class="field">
-      <label>سعر القطعة</label>
-      <input id="invPrice" type="number" min="0" step="0.01">
-    </div>
-    <div>
-      <label style="display:block;height:19px"></label>
-      <div class="actions">
-        <button onclick="saveBook()">حفظ الكتاب</button>
-        <button class="green" onclick="addInventory()">إضافة مخزون</button>
-        <button class="gray" onclick="clearInventoryForm()">تفريغ</button>
-      </div>
-    </div>
-  </div>
-
-  <p class="muted">
-    <b>حفظ الكتاب</b> يثبت الكمية الحالية والسعر.
-    <b>إضافة مخزون</b> تزود الكمية الحالية بالرقم الذي كتبته، ثم توزع الزيادة تلقائيًا على النواقص من أقدم طلب لأحدث طلب.
-  </p>
-
-  <div id="invTable"></div>
+<div class="card"><h2>المخزن</h2>
+<div class="grid">
+<div class="field">
+<label>اسم الكتاب</label>
+<input id="invName" autocomplete="off" oninput="inventorySearch(this.value)" onfocus="inventorySearch(this.value)" onkeydown="inventoryKey(event)">
+<div id="invSuggest" class="suggest hidden"></div>
+</div>
+<div class="field"><label>الكمية الحالية</label><input id="invQty" type="number" min="0" step="1"></div>
+<div class="field"><label>سعر القطعة</label><input id="invPrice" type="number" min="0" step="0.01"></div>
+<div class="field"><label>كمية الإضافة</label><input id="invAdd" type="number" min="1" step="1" placeholder="مثال: 5"></div>
+<div><label style="display:block;height:19px"></label>
+<div class="actions">
+<button onclick="saveBook()">حفظ الكتاب</button>
+<button class="green" onclick="addStock()">إضافة مخزون</button>
+<button class="gray" onclick="clearInventoryForm()">تفريغ</button>
+</div>
+</div>
+</div>
+<p class="muted">حفظ الكتاب يثبت الكمية الحالية والسعر. إضافة مخزون تزيد الكمية بالرقم الموجود في "كمية الإضافة" ثم توزع الزيادة تلقائيًا على النواقص من أقدم طلب لأحدث طلب.</p>
+<div id="inventoryTable"></div>
 </div>
 </section>
 
 <section id="missing" class="page hidden">
-<div class="card">
-  <h2>النواقص</h2>
-  <div id="missingTable"></div>
-</div>
+<div class="card"><h2>النواقص</h2><div id="missingTable"></div></div>
 </section>
 
 <section id="customers" class="page hidden">
-<div class="card">
-  <h2>العملاء</h2>
-  <div id="customersTable"></div>
-</div>
+<div class="card"><h2>العملاء</h2><div id="customersTable"></div></div>
 </section>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const SB_URL = 'https://inhhbjzfuxhcuctsfcpp.supabase.co';
-const SB_KEY = 'sb_publishable_RPXdIaSFg6aq3rtUc_vxGA_b31xrp0X';
-const db = window.supabase.createClient(SB_URL, SB_KEY);
+const SUPABASE_URL='https://inhhbjzfuxhcuctsfcpp.supabase.co';
+const SUPABASE_KEY='sb_publishable_RPXdIaSFg6aq3rtUc_vxGA_b31xrp0X';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let books = [];
-let orders = [];
-let lines = [];
-let editingId = null;
-let suppressRefresh = false;
+let books=[],orders=[],lines=[],editingId=null,suppressRefresh=false;
 
-const el = id => document.getElementById(id);
-const money = n => (Number(n) || 0).toFixed(2);
-const esc = s => String(s ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+const $=id=>document.getElementById(id);
+const money=n=>(Number(n)||0).toFixed(2);
+const esc=s=>String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 
-function setConnection(ok, text){
-  el('connection').textContent = text;
-  el('connection').className = 'status ' + (ok ? 'ok' : 'bad');
+function setConnection(ok,msg){
+  $('connection').textContent=msg;
+  $('connection').className='status '+(ok?'ok':'bad');
 }
-
 function show(id){
-  document.querySelectorAll('.page').forEach(x => x.classList.add('hidden'));
-  el(id).classList.remove('hidden');
-  if(id === 'orders') renderOrders();
-  if(id === 'inventory') renderInventory();
-  if(id === 'missing') renderMissing();
-  if(id === 'customers') renderCustomers();
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  $(id).classList.remove('hidden');
+  if(id==='home')renderHome();
+  if(id==='orders')renderOrders();
+  if(id==='inventory')renderInventory();
+  if(id==='missing')renderMissing();
+  if(id==='customers')renderCustomers();
 }
-
 async function loadBooks(){
-  const {data,error} = await db.from('books').select('*').order('name');
-  if(error) throw error;
-  books = data || [];
+  const {data,error}=await db.from('books').select('*').order('name');
+  if(error)throw error; books=data||[];
 }
-
 async function loadOrders(){
-  const {data,error} = await db.from('orders')
-    .select('id,order_no,customer_name,paid,notes,created_at,updated_at,order_items(id,book_id,quantity,unit_price,allocated,missing,created_at,books(id,name,stock,price))')
-    .order('order_no',{ascending:false});
-  if(error) throw error;
-  orders = data || [];
+  const {data,error}=await db.from('orders')
+  .select('id,order_no,customer_name,paid,notes,created_at,updated_at,order_items(id,book_id,quantity,unit_price,allocated,missing,created_at,books(id,name,stock,price))')
+  .order('order_no',{ascending:false});
+  if(error)throw error; orders=data||[];
 }
-
 async function refreshAll(){
-  if(suppressRefresh) return;
+  if(suppressRefresh)return;
   try{
     await Promise.all([loadBooks(),loadOrders()]);
-    renderLines();
-    renderOrders();
-    renderInventory();
-    renderMissing();
-    renderCustomers();
+    renderLines();renderHome();renderOrders();renderInventory();renderMissing();renderCustomers();
     setConnection(true,'متصل بالسحابة');
-  }catch(e){
-    console.error(e);
-    setConnection(false,'تعذر الاتصال');
-  }
+  }catch(e){console.error(e);setConnection(false,'تعذر الاتصال');}
 }
-
 function setupRealtime(){
   db.channel('library-live')
-    .on('postgres_changes',{event:'*',schema:'public',table:'books'},()=>refreshAll())
-    .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>refreshAll())
-    .on('postgres_changes',{event:'*',schema:'public',table:'order_items'},()=>refreshAll())
-    .on('postgres_changes',{event:'*',schema:'public',table:'payments'},()=>refreshAll())
-    .subscribe();
+  .on('postgres_changes',{event:'*',schema:'public',table:'books'},()=>refreshAll())
+  .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>refreshAll())
+  .on('postgres_changes',{event:'*',schema:'public',table:'order_items'},()=>refreshAll())
+  .on('postgres_changes',{event:'*',schema:'public',table:'payments'},()=>refreshAll())
+  .subscribe();
 }
 
-function startNewOrder(){
-  editingId = null;
-  el('orderTitle').textContent = 'طلب جديد';
-  el('saveBtn').textContent = 'حفظ الطلب';
-  el('customer').value = '';
-  el('paid').value = '0';
-  el('notes').value = '';
-  el('orderNo').value = 'سيتم توليده تلقائيًا عند الحفظ';
-  lines = [{book_id:null,name:'',qty:1}];
-  renderLines();
-  show('newOrder');
+function newOrder(){
+  editingId=null;
+  $('orderTitle').textContent='طلب جديد';
+  $('saveBtn').textContent='حفظ الطلب';
+  $('customer').value='';
+  $('paid').value='0';
+  $('notes').value='';
+  $('orderNo').value='سيتم توليده تلقائيًا عند الحفظ';
+  lines=[{book_id:null,name:'',qty:1}];
+  renderLines();show('newOrder');
 }
-
-function addLine(){
-  lines.push({book_id:null,name:'',qty:1});
-  renderLines();
-}
-
+function startNewOrder(){ return newOrder(); }
+function addLine(){lines.push({book_id:null,name:'',qty:1});renderLines();}
 function removeLine(i){
   lines.splice(i,1);
-  if(!lines.length) lines.push({book_id:null,name:'',qty:1});
+  if(!lines.length)lines.push({book_id:null,name:'',qty:1});
   renderLines();
 }
-
 function findBook(name){
-  const n = (name || '').trim().toLowerCase();
-  return books.find(b => b.name.trim().toLowerCase() === n);
+  const n=(name||'').trim().toLowerCase();
+  return books.find(b=>b.name.trim().toLowerCase()===n);
 }
-
-function bookMatches(query){
-  const q = (query || '').trim().toLowerCase();
-  if(!q) return [];
-  return books.filter(b => b.name.toLowerCase().includes(q)).slice(0,20);
+function bookMatches(q){
+  q=(q||'').trim().toLowerCase();
+  if(!q)return [];
+  return books.filter(b=>b.name.toLowerCase().includes(q)).slice(0,20);
 }
-
-function bookForLine(line){
-  if(line.book_id) return books.find(b => b.id === line.book_id);
-  return findBook(line.name);
-}
-
 function lineBook(i,value){
-  lines[i].name = value;
-  lines[i].book_id = null;
-  const box = el('sg'+i);
-  const matches = bookMatches(value);
-
-  box.innerHTML = '';
-  if(!matches.length){
-    box.classList.add('hidden');
-    calcOrder();
-    return;
-  }
-
+  lines[i].name=value;lines[i].book_id=null;
+  const box=$('suggest'+i);const matches=bookMatches(value);
+  box.innerHTML='';
+  if(!matches.length){box.classList.add('hidden');calcOrder();return;}
   box.classList.remove('hidden');
-  matches.forEach(book => {
-    const row = document.createElement('div');
-    row.textContent = `${book.name} (${book.stock})`;
-    row.addEventListener('mousedown', e => {
-      e.preventDefault();
-      lines[i].book_id = book.id;
-      lines[i].name = book.name;
-      renderLines();
+  matches.forEach(book=>{
+    const row=document.createElement('div');
+    row.textContent=`${book.name} — المتاح ${book.stock} — السعر ${money(book.price)}`;
+    row.addEventListener('mousedown',e=>{
+      e.preventDefault();lines[i].book_id=book.id;lines[i].name=book.name;renderLines();
     });
     box.appendChild(row);
   });
   calcOrder();
 }
-
+async function commitMissingLine(i){
+  const text=(lines[i]?.name||'').trim();
+  if(!text)return;
+  const matches=bookMatches(text);
+  if(matches.length){lines[i].book_id=matches[0].id;lines[i].name=matches[0].name;renderLines();return;}
+  try{
+    const {data,error}=await db.from('books').insert({name:text,stock:0,price:0}).select().single();
+    if(error){
+      const existing=findBook(text);
+      if(existing){lines[i].book_id=existing.id;lines[i].name=existing.name;renderLines();return;}
+      throw error;
+    }
+    books.push(data);
+    lines[i].book_id=data.id;lines[i].name=data.name;
+    renderLines();
+    alert('تم تسجيل الكتاب في المخزن كناقص (الكمية 0). احفظ الطلب ليظهر كناقص على العميل.');
+  }catch(e){alert('تعذر تسجيل الكتاب: '+e.message);}
+}
 function renderLines(){
-  const tb = el('lines');
-  tb.innerHTML = '';
-
-  lines.forEach((line,i) => {
-    const book = bookForLine(line);
-    const price = book ? Number(book.price)||0 : 0;
-
-    const tr = document.createElement('tr');
-    tr.innerHTML =
-      `<td class="field">
-         <input value="${esc(line.name || '')}" oninput="lineBook(${i},this.value)" autocomplete="off">
-         <div id="sg${i}" class="suggest hidden"></div>
-       </td>
-       <td><input type="number" min="1" step="1" value="${Number(line.qty)||1}" onchange="lines[${i}].qty=Math.max(1,Number(this.value)||1);calcOrder()"></td>
-       <td>${money(price)}</td>
-       <td>${money(price*(Number(line.qty)||0))}</td>
-       <td class="${book ? 'ok':'warn'}">${book ? 'موجود' : 'ناقص / جديد'}</td>
-       <td><button class="red" onclick="removeLine(${i})">حذف</button></td>`;
+  const tb=$('lines');tb.innerHTML='';
+  lines.forEach((line,i)=>{
+    const b=line.book_id?books.find(x=>x.id===line.book_id):findBook(line.name);
+    const price=b?Number(b.price)||0:0;
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+    `<td class="field"><input value="${esc(line.name||'')}" autocomplete="off"
+      oninput="lineBook(${i},this.value)"
+      onkeydown="orderBookKey(event,${i})">
+      <div id="suggest${i}" class="suggest hidden"></div></td>
+      <td><input type="number" min="1" step="1" value="${Number(line.qty)||1}"
+        onchange="lines[${i}].qty=Math.max(1,Number(this.value)||1);calcOrder()"></td>
+      <td>${money(price)}</td>
+      <td>${money(price*(Number(line.qty)||0))}</td>
+      <td class="${b?'ok':'warn'}">${b?'موجود':'ناقص / جديد'}</td>
+      <td><button class="red" onclick="removeLine(${i})">حذف</button></td>`;
     tb.appendChild(tr);
   });
-
   calcOrder();
 }
-
+function orderBookKey(e,i){
+  if(e.key!=='Enter')return;
+  e.preventDefault();
+  e.stopPropagation();
+  commitMissingLine(i);
+}
 function calcOrder(){
-  let total = 0;
-  for(const line of lines){
-    const book = bookForLine(line);
-    total += (book ? Number(book.price)||0 : 0) * (Number(line.qty)||0);
-  }
-  const paid = Number(el('paid').value)||0;
-  el('total').textContent = money(total);
-  el('paidView').textContent = money(paid);
-  el('due').textContent = money(Math.max(0,total-paid));
-  el('credit').textContent = money(Math.max(0,paid-total));
-}
-
-el('paid').addEventListener('input',calcOrder);
-
-document.addEventListener('click', e => {
-  document.querySelectorAll('.suggest').forEach(x => {
-    if(!x.contains(e.target) && !x.parentElement.contains(e.target)) x.classList.add('hidden');
+  let total=0;
+  lines.forEach(line=>{
+    const b=line.book_id?books.find(x=>x.id===line.book_id):findBook(line.name);
+    total+=(b?Number(b.price)||0:0)*(Number(line.qty)||0);
   });
-});
-
-async function ensureBook(name, price=0){
-  const clean = name.trim();
-  let b = findBook(clean);
-  if(b) return b;
-
-  const {data,error} = await db.from('books')
-    .insert({name:clean,stock:0,price:Number(price)||0})
-    .select().single();
-
-  if(error){
-    const {data:again,error:e2} = await db.from('books')
-      .select('*').ilike('name',clean).limit(1).maybeSingle();
-    if(!e2 && again) return again;
-    throw error;
-  }
-  books.push(data);
-  return data;
+  const paid=Number($('paid').value)||0;
+  $('total').textContent=money(total);
+  $('paidView').textContent=money(paid);
+  $('due').textContent=money(Math.max(0,total-paid));
+  $('credit').textContent=money(Math.max(0,paid-total));
 }
+$('paid').addEventListener('input',calcOrder);
 
 function mergedDraft(){
-  const map = new Map();
+  const map=new Map();
   for(const line of lines){
-    const name = line.name.trim();
-    const qty = Number(line.qty)||0;
-    if(!name || qty<=0) continue;
-
-    const key = name.toLowerCase();
-    if(map.has(key)) map.get(key).qty += qty;
+    const name=line.name.trim(),qty=Number(line.qty)||0;
+    if(!name||qty<=0)continue;
+    const key=name.toLowerCase();
+    if(map.has(key))map.get(key).qty+=qty;
     else map.set(key,{name,qty,book_id:line.book_id});
   }
   return [...map.values()];
 }
 
 async function saveOrder(){
-  const customer = el('customer').value.trim();
-  const draft = mergedDraft();
+  const customer=$('customer').value.trim();
+  const draft=mergedDraft();
+  if(!customer)return alert('اكتب اسم العميل');
+  if(!draft.length)return alert('أضف كتابًا واحدًا على الأقل');
 
-  if(!customer) return alert('اكتب اسم العميل');
-  if(!draft.length) return alert('أضف كتابًا واحدًا على الأقل');
-
-  const old = editingId ? orders.find(o => o.id === editingId) : null;
-  suppressRefresh = true;
-
+  suppressRefresh=true;
   try{
-    if(old){
-      // Return quantities that were actually allocated by the old version of this order.
-      for(const item of (old.order_items || [])){
-        if(Number(item.allocated) > 0){
-          const book = books.find(b => b.id === item.book_id);
-          if(book){
-            const {error} = await db.from('books')
-              .update({stock:Number(book.stock)+Number(item.allocated),updated_at:new Date().toISOString()})
-              .eq('id',book.id);
-            if(error) throw error;
-          }
-        }
-      }
+    const payload=draft.map(x=>({name:x.name,quantity:x.qty}));
+    const {data,error}=await db.rpc('save_library_order',{
+      p_order_id:editingId,
+      p_customer_name:customer,
+      p_paid:Number($('paid').value)||0,
+      p_notes:$('notes').value,
+      p_items:payload
+    });
+    if(error)throw error;
 
-      const {error:deleteItemsError} = await db.from('order_items').delete().eq('order_id',old.id);
-      if(deleteItemsError) throw deleteItemsError;
-
-      const {error:updateOrderError} = await db.from('orders').update({
-        customer_name:customer,
-        paid:Number(el('paid').value)||0,
-        notes:el('notes').value,
-        updated_at:new Date().toISOString()
-      }).eq('id',old.id);
-      if(updateOrderError) throw updateOrderError;
-    }else{
-      const {data,error} = await db.from('orders').insert({
-        customer_name:customer,
-        paid:Number(el('paid').value)||0,
-        notes:el('notes').value
-      }).select().single();
-      if(error) throw error;
-      editingId = data.id;
-      el('orderNo').value = data.order_no;
-    }
-
-    for(const draftLine of draft){
-      const book = await ensureBook(draftLine.name);
-      const fresh = books.find(b=>b.id===book.id) || book;
-      const stock = Math.max(0,Number(fresh.stock)||0);
-      const qty = draftLine.qty;
-      const allocated = Math.min(stock,qty);
-      const missing = qty-allocated;
-
-      if(allocated>0){
-        const {error} = await db.from('books')
-          .update({stock:stock-allocated,updated_at:new Date().toISOString()})
-          .eq('id',book.id);
-        if(error) throw error;
-        fresh.stock = stock-allocated;
-      }
-
-      const {error:itemError} = await db.from('order_items').insert({
-        order_id:editingId,
-        book_id:book.id,
-        quantity:qty,
-        unit_price:Number(fresh.price)||0,
-        allocated,
-        missing
-      });
-      if(itemError) throw itemError;
-    }
-
-    alert(old ? 'تم تعديل الطلب وتحديث المخزن والنواقص' : 'تم حفظ الطلب');
-    suppressRefresh = false;
+    $('orderNo').value=data.order_no;
+    suppressRefresh=false;
     await refreshAll();
+    alert(editingId ? 'تم تعديل الطلب وتحديث المخزن والنواقص' : 'تم حفظ الطلب وتحديث المخزن والنواقص');
     startNewOrder();
     show('orders');
   }catch(e){
-    console.error(e);
-    suppressRefresh = false;
+    suppressRefresh=false;
     await refreshAll();
-    alert('حصل خطأ: '+(e.message || e));
+    alert('حصل خطأ: '+(e.message||e));
   }
 }
 
 function editOrder(id){
-  const order = orders.find(o=>o.id===id);
-  if(!order) return;
-
-  editingId = order.id;
-  el('orderTitle').textContent = 'تعديل الطلب #'+order.order_no;
-  el('saveBtn').textContent = 'حفظ التعديل';
-  el('customer').value = order.customer_name || '';
-  el('paid').value = order.paid || 0;
-  el('notes').value = order.notes || '';
-  el('orderNo').value = order.order_no;
-  lines = (order.order_items || []).map(item => ({
-    book_id:item.book_id,
-    name:item.books?.name || '',
-    qty:item.quantity
-  }));
-
-  if(!lines.length) lines=[{book_id:null,name:'',qty:1}];
-  renderLines();
-  show('newOrder');
+  const order=orders.find(o=>o.id===id);if(!order)return;
+  editingId=order.id;
+  $('orderTitle').textContent='تعديل الطلب #'+order.order_no;
+  $('saveBtn').textContent='حفظ التعديل';
+  $('customer').value=order.customer_name||'';
+  $('paid').value=order.paid||0;
+  $('notes').value=order.notes||'';
+  $('orderNo').value=order.order_no;
+  lines=(order.order_items||[]).map(item=>({book_id:item.book_id,name:item.books?.name||'',qty:item.quantity}));
+  if(!lines.length)lines=[{book_id:null,name:'',qty:1}];
+  renderLines();show('newOrder');
 }
-
 async function addPayment(id){
-  const order = orders.find(o=>o.id===id);
-  if(!order) return;
-
-  const amount = Number(prompt('قيمة الدفعة الجديدة؟','0'));
-  if(!(amount>0)) return;
-
+  const amount=Number(prompt('قيمة الدفعة الجديدة؟','0'));
+  if(!(amount>0))return;
   try{
-    const {error:paymentError} = await db.from('payments').insert({order_id:id,amount});
-    if(paymentError) throw paymentError;
-
-    const {error:updateError} = await db.from('orders')
-      .update({paid:Number(order.paid||0)+amount,updated_at:new Date().toISOString()})
-      .eq('id',id);
-
-    if(updateError) throw updateError;
+    const {error}=await db.rpc('add_library_payment',{p_order_id:id,p_amount:amount});
+    if(error)throw error;
     await refreshAll();
-  }catch(e){
-    alert('حصل خطأ: '+e.message);
-  }
+  }catch(e){alert('حصل خطأ: '+(e.message||e));}
 }
-
 async function deleteOrder(id){
-  const order = orders.find(o=>o.id===id);
-  if(!order) return;
-
-  if(!confirm('حذف الطلب #'+order.order_no+' وإرجاع الكميات المخصومة للمخزن؟')) return;
-
+  const order=orders.find(o=>o.id===id);
+  if(!order)return;
+  if(!confirm('حذف الطلب #'+order.order_no+' وإرجاع الكميات المخصومة للمخزن؟'))return;
   try{
-    for(const item of (order.order_items || [])){
-      if(Number(item.allocated)>0){
-        const book = books.find(b=>b.id===item.book_id);
-        if(book){
-          const {error} = await db.from('books')
-            .update({stock:Number(book.stock)+Number(item.allocated),updated_at:new Date().toISOString()})
-            .eq('id',book.id);
-          if(error) throw error;
-        }
-      }
-    }
-
-    const {error} = await db.from('orders').delete().eq('id',id);
-    if(error) throw error;
-
+    const {error}=await db.rpc('delete_library_order',{p_order_id:id});
+    if(error)throw error;
     await refreshAll();
-  }catch(e){
-    alert('حصل خطأ: '+e.message);
-  }
+  }catch(e){alert('حصل خطأ: '+(e.message||e));}
 }
 
 function renderOrders(){
-  const q = (el('orderSearch')?.value || '').toLowerCase();
-
-  const rows = orders.filter(o =>
-    String(o.order_no).includes(q) ||
-    (o.customer_name || '').toLowerCase().includes(q)
-  );
-
-  el('ordersTable').innerHTML =
-    `<table>
-      <thead>
-        <tr><th>الطلب</th><th>العميل</th><th>الكتب</th><th>الإجمالي</th><th>المدفوع</th><th>عليه</th><th>له</th><th>إجراءات</th></tr>
-      </thead>
-      <tbody>
-      ${rows.map(order=>{
-        const total = (order.order_items||[]).reduce((sum,item)=>sum + Number(item.quantity||0)*Number(item.unit_price||0),0);
-        const due = Math.max(0,total-Number(order.paid||0));
-        const credit = Math.max(0,Number(order.paid||0)-total);
-
-        return `<tr>
-          <td>${order.order_no}</td>
-          <td>${esc(order.customer_name)}</td>
-          <td>${(order.order_items||[]).map(item =>
-            esc(item.books?.name||'')+' × '+item.quantity+(item.missing ? ' <span class="warn">(ناقص '+item.missing+')</span>' : '')
-          ).join('<br>')}</td>
-          <td>${money(total)}</td>
-          <td>${money(order.paid)}</td>
-          <td>${money(due)}</td>
-          <td>${money(credit)}</td>
-          <td>
-            <button onclick="editOrder('${order.id}')">تعديل</button>
-            <button class="green" onclick="addPayment('${order.id}')">دفعة</button>
-            <button class="red" onclick="deleteOrder('${order.id}')">حذف</button>
-          </td>
-        </tr>`;
-      }).join('')}
-      </tbody>
-    </table>`;
+  const q=($('orderSearch')?.value||'').toLowerCase();
+  const rows=orders.filter(o=>String(o.order_no).includes(q)||(o.customer_name||'').toLowerCase().includes(q));
+  $('ordersTable').innerHTML=
+  `<table><thead><tr><th>الطلب</th><th>العميل</th><th>الكتب</th><th>الإجمالي</th><th>المدفوع</th><th>عليه</th><th>له</th><th>إجراءات</th></tr></thead><tbody>
+  ${rows.map(o=>{
+    const total=(o.order_items||[]).reduce((s,it)=>s+Number(it.quantity||0)*Number(it.unit_price||0),0);
+    const paid=Number(o.paid)||0;
+    return `<tr><td>${o.order_no}</td><td>${esc(o.customer_name)}</td><td>${(o.order_items||[]).map(it=>esc(it.books?.name||'')+' × '+it.quantity+(it.missing?' <span class="warn">(ناقص '+it.missing+')</span>':'')).join('<br>')}</td><td>${money(total)}</td><td>${money(paid)}</td><td>${money(Math.max(0,total-paid))}</td><td>${money(Math.max(0,paid-total))}</td><td><button onclick="editOrder('${o.id}')">تعديل</button> <button class="green" onclick="addPayment('${o.id}')">دفعة</button> <button class="red" onclick="deleteOrder('${o.id}')">حذف</button></td></tr>`;
+  }).join('')}</tbody></table>`;
 }
 
-/* -------------------- INVENTORY -------------------- */
-
-function inventorySearch(query){
-  const box = el('invSuggest');
-  const matches = bookMatches(query);
-
-  box.innerHTML = '';
-  if(!matches.length){
-    box.classList.add('hidden');
-    return;
-  }
-
+/* Inventory */
+function inventorySearch(q){
+  const box=$('invSuggest');const matches=bookMatches(q);box.innerHTML='';
+  if(!matches.length){box.classList.add('hidden');return;}
   box.classList.remove('hidden');
   matches.forEach(book=>{
-    const row = document.createElement('div');
-    row.textContent = `${book.name} — المتاح ${book.stock} — السعر ${money(book.price)}`;
-    row.addEventListener('mousedown',e=>{
-      e.preventDefault();
-      selectInventoryBook(book.id);
-    });
+    const row=document.createElement('div');
+    row.textContent=`${book.name} — المتاح ${book.stock} — السعر ${money(book.price)}`;
+    row.addEventListener('mousedown',e=>{e.preventDefault();selectInventoryBook(book.id);});
     box.appendChild(row);
   });
 }
-
+function inventoryKey(e){
+  if(e.key!=='Enter')return;
+  e.preventDefault();
+  const first=bookMatches($('invName').value)[0];
+  if(first)selectInventoryBook(first.id);
+}
 function selectInventoryBook(id){
-  const book = books.find(b=>b.id===id);
-  if(!book) return;
-
-  el('invName').value = book.name;
-  el('invQty').value = book.stock;
-  el('invPrice').value = book.price;
-  el('invAdd').value = '';
-  el('invSuggest').classList.add('hidden');
+  const book=books.find(b=>b.id===id);if(!book)return;
+  $('invName').value=book.name;
+  $('invQty').value=book.stock;
+  $('invPrice').value=book.price;
+  $('invAdd').value='';
+  $('invSuggest').classList.add('hidden');
 }
-
 function clearInventoryForm(){
-  el('invName').value='';
-  el('invQty').value='';
-  el('invPrice').value='';
-  el('invAdd').value='';
-  el('invSuggest').classList.add('hidden');
+  $('invName').value='';$('invQty').value='';$('invPrice').value='';$('invAdd').value='';
+  $('invSuggest').classList.add('hidden');
 }
-
 async function saveBook(){
-  const name = el('invName').value.trim();
-  const qty = Number(el('invQty').value);
-  const price = Number(el('invPrice').value);
-
-  if(!name) return alert('اكتب اسم الكتاب');
-  if(!Number.isFinite(qty) || qty<0) return alert('اكتب كمية صحيحة');
-  if(!Number.isFinite(price) || price<0) return alert('اكتب سعرًا صحيحًا');
-
-  suppressRefresh = true;
+  const name=$('invName').value.trim();
+  const qty=Number($('invQty').value);
+  const price=Number($('invPrice').value);
+  if(!name)return alert('اكتب اسم الكتاب');
+  if(!Number.isFinite(qty)||qty<0)return alert('أدخل كمية صحيحة');
+  if(!Number.isFinite(price)||price<0)return alert('أدخل سعرًا صحيحًا');
+  const current=findBook(name);
   try{
-    let book = findBook(name);
-
-    if(!book){
-      const {data,error} = await db.from('books').insert({
-        name,stock:qty,price
-      }).select().single();
-      if(error) throw error;
-    }else{
-      const oldStock = Number(book.stock)||0;
-      const newStock = qty;
-
-      const {error} = await db.from('books').update({
-        stock:newStock,
-        price,
-        updated_at:new Date().toISOString()
-      }).eq('id',book.id);
-      if(error) throw error;
-
-      // If stock increased, use only the increase to satisfy shortages.
-      if(newStock>oldStock){
-        await fulfillShortages(book.id,newStock-oldStock);
-      }
-    }
-
-    suppressRefresh = false;
-    clearInventoryForm();
-    await refreshAll();
-    alert('تم حفظ بيانات الكتاب');
-  }catch(e){
-    suppressRefresh = false;
-    await refreshAll();
-    alert('حصل خطأ: '+e.message);
-  }
+    const {error}=await db.rpc('save_library_book',{p_book_id:current?.id||null,p_name:name,p_stock:Math.floor(qty),p_price:price});
+    if(error)throw error;
+    clearInventoryForm();await refreshAll();alert('تم حفظ الكتاب والكمية والسعر');
+  }catch(e){alert('حصل خطأ: '+e.message);}
 }
-
-async function addInventory(){
-  const name = el('invName').value.trim();
-  const add = Number(el('invAdd').value);
-  const priceRaw = el('invPrice').value.trim();
-  const price = priceRaw==='' ? null : Number(priceRaw);
-
-  if(!name) return alert('اكتب أو اختر اسم الكتاب');
-  if(!Number.isFinite(add) || add<=0) return alert('اكتب كمية الإضافة');
-  if(price!==null && (!Number.isFinite(price) || price<0)) return alert('اكتب سعرًا صحيحًا');
-
-  suppressRefresh = true;
+async function addStock(){
+  const name=$('invName').value.trim();
+  const amount=Number($('invAdd').value);
+  const priceText=$('invPrice').value.trim();
+  const price=priceText===''?null:Number(priceText);
+  if(!name)return alert('اكتب أو اختر اسم الكتاب');
+  if(!Number.isFinite(amount)||amount<=0)return alert('أدخل كمية الإضافة');
+  if(price!==null&&(!Number.isFinite(price)||price<0))return alert('أدخل سعرًا صحيحًا');
   try{
-    let book = findBook(name);
-
+    let book=findBook(name);
     if(!book){
-      const {data,error} = await db.from('books').insert({
-        name,stock:0,price:price===null?0:price
-      }).select().single();
-      if(error) throw error;
-      book = data;
-      books.push(book);
-    }else if(price!==null){
-      const {error} = await db.from('books').update({
-        price,updated_at:new Date().toISOString()
-      }).eq('id',book.id);
-      if(error) throw error;
-      book.price = price;
+      const {data,error}=await db.from('books').insert({name,stock:0,price:price??0}).select().single();
+      if(error){
+        const retry=findBook(name);
+        if(!retry)throw error;
+        book=retry;
+      }else book=data;
     }
-
-    const oldStock = Number(book.stock)||0;
-    const newStock = oldStock + add;
-
-    const {error:updateError} = await db.from('books').update({
-      stock:newStock,updated_at:new Date().toISOString()
-    }).eq('id',book.id);
-    if(updateError) throw updateError;
-
-    const used = await fulfillShortages(book.id,add);
-
-    suppressRefresh = false;
-    clearInventoryForm();
-    await refreshAll();
-
-    if(used>0){
-      alert(`تمت إضافة ${add} نسخة، وتم تخصيص ${used} نسخة للنواقص. المتاح المتبقي في المخزن: ${newStock-used}`);
-    }else{
-      alert(`تمت إضافة ${add} نسخة للمخزن.`);
-    }
-  }catch(e){
-    suppressRefresh = false;
-    await refreshAll();
-    alert('حصل خطأ: '+e.message);
-  }
+    const {data,error}=await db.rpc('add_library_stock',{p_book_id:book.id,p_amount:Math.floor(amount),p_price:price});
+    if(error)throw error;
+    clearInventoryForm();await refreshAll();
+    alert(`تمت إضافة ${Math.floor(amount)} نسخة. تم تخصيص ${data.allocated_to_shortage||0} للنواقص، والمتبقي في المخزن ${data.remaining_stock||0}.`);
+  }catch(e){alert('حصل خطأ: '+e.message);}
 }
-
-async function fulfillShortages(bookId,availableToUse){
-  let available = Number(availableToUse)||0;
-  let used = 0;
-
-  if(available<=0) return 0;
-
-  const {data:items,error} = await db.from('order_items')
-    .select('id,quantity,allocated,missing,created_at')
-    .eq('book_id',bookId)
-    .gt('missing',0)
-    .order('created_at',{ascending:true});
-
-  if(error) throw error;
-
-  for(const item of (items||[])){
-    if(available<=0) break;
-
-    const missing = Number(item.missing)||0;
-    const allocated = Number(item.allocated)||0;
-    const take = Math.min(available,missing);
-
-    const {error:updateError} = await db.from('order_items').update({
-      allocated:allocated+take,
-      missing:missing-take
-    }).eq('id',item.id);
-
-    if(updateError) throw updateError;
-
-    available -= take;
-    used += take;
-  }
-
-  // The caller has already added the full quantity to books.stock.
-  // Remove only the portion assigned to customers from the remaining stock.
-  if(used>0){
-    const {data:book,error:bookError} = await db.from('books').select('stock').eq('id',bookId).single();
-    if(bookError) throw bookError;
-
-    const {error:stockError} = await db.from('books').update({
-      stock:Math.max(0,Number(book.stock)-used),
-      updated_at:new Date().toISOString()
-    }).eq('id',bookId);
-
-    if(stockError) throw stockError;
-  }
-
-  return used;
-}
-
 function missingTotal(bookId){
-  let n=0;
-  for(const order of orders){
-    for(const item of (order.order_items||[])){
-      if(item.book_id===bookId) n += Number(item.missing)||0;
-    }
-  }
-  return n;
+  return orders.reduce((sum,o)=>sum+(o.order_items||[]).filter(i=>i.book_id===bookId).reduce((s,i)=>s+(Number(i.missing)||0),0),0);
 }
-
 function renderInventory(){
-  el('invTable').innerHTML =
-    `<table>
-      <thead><tr><th>الكتاب</th><th>المتاح</th><th>الناقص</th><th>السعر</th><th>إجراءات</th></tr></thead>
-      <tbody>
-      ${books.map(book=>{
-        const missing = missingTotal(book.id);
-        return `<tr class="${missing?'dangerrow':''}">
-          <td>${esc(book.name)}</td>
-          <td>${Number(book.stock)||0}</td>
-          <td>${missing}</td>
-          <td>${money(book.price)}</td>
-          <td>
-            <button onclick="selectInventoryBook('${book.id}')">تعديل</button>
-            <button class="green" onclick="quickAddStock('${book.id}')">إضافة مخزون</button>
-          </td>
-        </tr>`;
-      }).join('')}
-      </tbody>
-    </table>`;
+  $('inventoryTable').innerHTML=
+  `<table><thead><tr><th>الكتاب</th><th>المتاح</th><th>الناقص</th><th>السعر</th><th>إجراءات</th></tr></thead><tbody>
+  ${books.map(b=>`<tr class="${missingTotal(b.id)>0?'dangerrow':''}"><td>${esc(b.name)}</td><td>${b.stock}</td><td>${missingTotal(b.id)}</td><td>${money(b.price)}</td><td><button onclick="selectInventoryBook('${b.id}')">تعديل</button> <button class="green" onclick="quickAdd('${b.id}')">إضافة مخزون</button> <button class="red" onclick="deleteBook('${b.id}')">مسح الكتاب</button></td></tr>`).join('')}
+  </tbody></table>`;
+}
+async function deleteBook(id){
+  const book=books.find(b=>b.id===id);
+  if(!book)return;
+  const missing=missingTotal(id);
+  if(missing>0){
+    return alert('لا يمكن مسح الكتاب لأنه عليه نواقص لعملاء. وفّر الكمية الناقصة أو احذف الطلبات المرتبطة أولًا.');
+  }
+  if(!confirm('مسح الكتاب «'+book.name+'» من المخزن نهائيًا؟'))return;
+  try{
+    const {error}=await db.rpc('delete_library_book',{p_book_id:id});
+    if(error)throw error;
+    clearInventoryForm();
+    await refreshAll();
+    alert('تم مسح الكتاب من المخزن.');
+  }catch(e){
+    alert('تعذر مسح الكتاب: '+(e.message||e));
+  }
+}
+async function quickAdd(id){
+  const book=books.find(b=>b.id===id);if(!book)return;
+  const amount=Number(prompt('كمية الإضافة للكتاب «'+book.name+'»؟','1'));
+  if(!(amount>0))return;
+  $('invName').value=book.name;$('invPrice').value=book.price;$('invAdd').value=amount;
+  await addStock();
 }
 
-async function quickAddStock(id){
-  const book = books.find(b=>b.id===id);
-  if(!book) return;
-
-  const value = Number(prompt('كمية الإضافة للكتاب «'+book.name+'»؟','1'));
-  if(!(value>0)) return;
-
-  el('invName').value = book.name;
-  el('invPrice').value = book.price;
-  el('invAdd').value = value;
-  await addInventory();
+function renderHome(){
+  $('homeBooks').textContent=books.length;
+  $('homeOrders').textContent=orders.length;
+  const missing=orders.reduce((sum,o)=>sum+(o.order_items||[]).reduce((s,i)=>s+(Number(i.missing)||0),0),0);
+  const paid=orders.reduce((sum,o)=>sum+(Number(o.paid)||0),0);
+  $('homeMissing').textContent=missing;
+  $('homePaid').textContent=money(paid);
 }
-
-/* -------------------- MISSING / CUSTOMERS -------------------- */
-
 function renderMissing(){
   const map={};
-
-  for(const order of orders){
-    for(const item of (order.order_items||[])){
-      if(!(Number(item.missing)>0)) continue;
-
-      if(!map[item.book_id]){
-        map[item.book_id]={
-          name:item.books?.name||'',
-          total:0,
-          clients:{}
-        };
-      }
-
-      map[item.book_id].total += Number(item.missing)||0;
-      map[item.book_id].clients[order.customer_name] =
-        (map[item.book_id].clients[order.customer_name]||0) + (Number(item.missing)||0);
-    }
+  for(const o of orders)for(const it of(o.order_items||[])){
+    if(!(Number(it.missing)>0))continue;
+    if(!map[it.book_id])map[it.book_id]={name:it.books?.name||'',total:0,clients:{}};
+    map[it.book_id].total+=Number(it.missing);
+    map[it.book_id].clients[o.customer_name]=(map[it.book_id].clients[o.customer_name]||0)+Number(it.missing);
   }
-
-  el('missingTable').innerHTML =
-    `<table>
-      <thead><tr><th>الكتاب</th><th>إجمالي الناقص</th><th>حسب العميل</th></tr></thead>
-      <tbody>
-      ${Object.values(map).map(item =>
-        `<tr class="dangerrow">
-          <td>${esc(item.name)}</td>
-          <td>${item.total}</td>
-          <td>${Object.entries(item.clients).map(([c,q])=>esc(c)+': '+q).join('<br>')}</td>
-        </tr>`
-      ).join('')}
-      </tbody>
-    </table>`;
+  $('missingTable').innerHTML=
+  `<table><thead><tr><th>الكتاب</th><th>إجمالي الناقص</th><th>حسب العميل</th></tr></thead><tbody>
+  ${Object.values(map).map(x=>`<tr class="dangerrow"><td>${esc(x.name)}</td><td>${x.total}</td><td>${Object.entries(x.clients).map(([c,q])=>esc(c)+': '+q).join('<br>')}</td></tr>`).join('')}</tbody></table>`;
 }
-
 function renderCustomers(){
   const map={};
-
-  for(const order of orders){
-    if(!map[order.customer_name]){
-      map[order.customer_name]={total:0,paid:0,orders:0};
-    }
-
-    map[order.customer_name].orders++;
-    map[order.customer_name].paid += Number(order.paid)||0;
-    map[order.customer_name].total +=
-      (order.order_items||[]).reduce((s,item)=>s + Number(item.quantity||0)*Number(item.unit_price||0),0);
+  for(const o of orders){
+    if(!map[o.customer_name])map[o.customer_name]={total:0,paid:0,count:0};
+    map[o.customer_name].count++;
+    map[o.customer_name].paid+=Number(o.paid)||0;
+    map[o.customer_name].total+=(o.order_items||[]).reduce((s,i)=>s+Number(i.quantity||0)*Number(i.unit_price||0),0);
   }
-
-  el('customersTable').innerHTML =
-    `<table>
-      <thead><tr><th>العميل</th><th>الطلبات</th><th>الإجمالي</th><th>دفع</th><th>عليه</th><th>له</th></tr></thead>
-      <tbody>
-      ${Object.entries(map).map(([name,item])=>{
-        const due=Math.max(0,item.total-item.paid);
-        const credit=Math.max(0,item.paid-item.total);
-
-        return `<tr>
-          <td>${esc(name)}</td>
-          <td>${item.orders}</td>
-          <td>${money(item.total)}</td>
-          <td>${money(item.paid)}</td>
-          <td>${money(due)}</td>
-          <td>${money(credit)}</td>
-        </tr>`;
-      }).join('')}
-      </tbody>
-    </table>`;
+  $('customersTable').innerHTML=
+  `<table><thead><tr><th>العميل</th><th>عدد الطلبات</th><th>الإجمالي</th><th>دفع</th><th>عليه</th><th>له</th></tr></thead><tbody>
+  ${Object.entries(map).map(([name,x])=>`<tr><td>${esc(name)}</td><td>${x.count}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(Math.max(0,x.total-x.paid))}</td><td>${money(Math.max(0,x.paid-x.total))}</td></tr>`).join('')}</tbody></table>`;
 }
 
-/* initial load */
+document.addEventListener('click',e=>{
+  document.querySelectorAll('.suggest').forEach(box=>{
+    if(!box.contains(e.target))box.classList.add('hidden');
+  });
+});
+
 (async()=>{
-  try{
-    await refreshAll();
-    setupRealtime();
-    startNewOrder();
-  }catch(e){
-    console.error(e);
-    setConnection(false,'تعذر الاتصال');
-  }
+  try{await refreshAll();setupRealtime();show('home');}
+  catch(e){console.error(e);setConnection(false,'تعذر الاتصال');}
 })();
 </script>
 </body>
