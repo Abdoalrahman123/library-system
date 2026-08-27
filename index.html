@@ -9,6 +9,25 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:inherit}header{background:#163a55;color:#fff;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}header h1{margin:0;font-size:24px}.status{font-size:13px}.status.ok{color:#aef0cc}.status.bad{color:#ffc1cb}.wrap{max-width:1320px;margin:18px auto;padding:0 14px}nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}button{border:0;border-radius:9px;padding:9px 14px;cursor:pointer;background:var(--primary);color:#fff;font-size:14px}button.green{background:var(--green)}button.red{background:var(--red)}button.gray{background:#6b7280}button.orange{background:var(--orange)}button:disabled{opacity:.55;cursor:not-allowed}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:15px;box-shadow:0 4px 18px #192b3d0b}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.field{position:relative}.field label{display:block;color:#555;font-size:13px;margin-bottom:5px}input{width:100%;padding:10px;border:1px solid #ccd4df;border-radius:9px;font-size:14px;background:#fff}input:focus{outline:2px solid #d9e6ff;border-color:#78a7f5}input[readonly]{background:#f6f8fa}.actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}table{width:100%;border-collapse:collapse;margin-top:11px}th,td{padding:10px 9px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}th{background:#edf2f7;font-weight:700}.warn{color:var(--red);font-weight:800}.ok{color:var(--green);font-weight:800}.dangerrow{background:#fff0f2}.muted{font-size:13px;color:var(--muted);line-height:1.6}.summary{display:flex;gap:10px;flex-wrap:wrap}.metric{background:#f8fafc;border:1px solid var(--line);padding:11px;border-radius:10px;min-width:150px}.metric b{font-size:18px}.hidden{display:none!important}.suggest{position:absolute;right:0;left:0;top:100%;z-index:100;background:#fff;border:1px solid #ccd4df;border-radius:9px;box-shadow:0 8px 18px #14223124;max-height:240px;overflow:auto}.suggest div{padding:9px;cursor:pointer;border-bottom:1px solid #eef1f5}.suggest div:hover{background:var(--blueSoft)}.bookline{margin-bottom:9px;padding-bottom:8px;border-bottom:1px solid #edf0f4}.delivery-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:5px}.delivery-tools input{width:74px;padding:6px}.pill{display:inline-block;padding:2px 7px;border-radius:999px;background:#eef2f7;color:#5b6678;font-size:12px}.positive{color:var(--green);font-weight:800}.negative{color:var(--red);font-weight:800}
 @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}th,td{font-size:13px}}
 @media(max-width:560px){.grid{grid-template-columns:1fr}.wrap{padding:0 9px}header{padding:13px 14px}header h1{font-size:20px}nav{overflow:auto;flex-wrap:nowrap}nav button{white-space:nowrap}}
+
+#printArea{display:none}
+@media print{
+  body{background:#fff!important}
+  header,.wrap{display:none!important}
+  #printArea{display:block!important;direction:rtl;background:#fff;color:#111;width:100%;max-width:800px;margin:0 auto;padding:18px;font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+  #printArea .title{text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:14px}
+  #printArea .title h1{margin:0 0 4px;font-size:26px}
+  #printArea .meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  #printArea .meta div{border:1px solid #ccc;border-radius:5px;padding:7px}
+  #printArea table{width:100%;border-collapse:collapse;margin-top:8px}
+  #printArea th,#printArea td{border:1px solid #bbb;padding:7px;text-align:right}
+  #printArea th{background:#f1f1f1}
+  #printArea .totals{width:360px;margin:15px 0 0 auto}
+  #printArea .totals div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ddd}
+  #printArea .due{color:#c9344e;font-weight:800}
+  #printArea .credit{color:#16895a;font-weight:800}
+  #printArea .footer{text-align:center;margin-top:20px;color:#666;font-size:11px}
+}
 </style>
 </head>
 <body>
@@ -80,7 +99,29 @@ function show(id){document.querySelectorAll('.page').forEach(p=>p.classList.add(
 async function loadBooks(){const {data,error}=await db.from('books').select('*').order('name');if(error)throw error;books=data||[]}
 async function loadOrders(){const {data,error}=await db.from('orders').select('id,order_no,customer_name,paid,notes,created_at,updated_at,order_items(id,book_id,quantity,unit_price,allocated,missing,delivered_qty,created_at,books(id,name,stock,price))').order('order_no',{ascending:false});if(error)throw error;orders=data||[]}
 function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>refreshAll(),120)}
-async function refreshAll(){if(suppressRefresh)return;try{await Promise.all([loadBooks(),loadOrders()]);renderHome();renderLines();renderOrders();renderInventory();renderMissing();renderCustomers();setConnection(true,'متصل بالسحابة')}catch(e){console.error(e);setConnection(false,'تعذر الاتصال') }}
+async function refreshAll(){
+  if(suppressRefresh)return;
+  try{
+    await Promise.all([loadBooks(),loadOrders()]);
+    renderHome();
+
+    const page=el('newOrder');
+    const orderFormOpen=page && !page.classList.contains('hidden');
+    if(!orderFormOpen){
+      renderLines();
+    }
+
+    renderOrders();
+    renderInventory();
+    renderMissing();
+    renderCustomers();
+    setConnection(true,'متصل بالسحابة');
+  }catch(e){
+    console.error(e);
+    setConnection(false,'تعذر الاتصال');
+  }
+}
+
 function setupRealtime(){realtimeChannel=db.channel('library-live-v2').on('postgres_changes',{event:'*',schema:'public',table:'books'},scheduleRefresh).on('postgres_changes',{event:'*',schema:'public',table:'orders'},scheduleRefresh).on('postgres_changes',{event:'*',schema:'public',table:'order_items'},scheduleRefresh).on('postgres_changes',{event:'*',schema:'public',table:'payments'},scheduleRefresh).subscribe()}
 function newOrder(){editingId=null;el('orderTitle').textContent='طلب جديد';el('saveBtn').textContent='حفظ الطلب';el('customer').value='';el('paid').value='0';el('notes').value='';el('orderNo').value='سيتم توليده تلقائيًا';lines=[{book_id:null,name:'',qty:1}];renderLines();show('newOrder')}
 function addLine(){lines.push({book_id:null,name:'',qty:1});renderLines()}
@@ -88,20 +129,229 @@ function removeLine(i){lines.splice(i,1);if(!lines.length)lines.push({book_id:nu
 function findBook(name){const n=(name||'').trim().toLowerCase();return books.find(b=>b.name.trim().toLowerCase()===n)}
 function bookMatches(q){q=(q||'').trim().toLowerCase();if(!q)return[];return books.filter(b=>b.name.toLowerCase().includes(q)).slice(0,20)}
 function bookForLine(l){return l.book_id?books.find(b=>b.id===l.book_id):findBook(l.name)}
-function lineBook(i,v){lines[i].name=v;lines[i].book_id=null;const box=el('suggest'+i);if(!box){renderLines();return}const ms=bookMatches(v);box.innerHTML='';if(!ms.length){box.classList.add('hidden');calcOrder();return}box.classList.remove('hidden');ms.forEach(b=>{const d=document.createElement('div');d.textContent=b.name+' — المتاح '+b.stock+' — السعر '+money(b.price);d.addEventListener('mousedown',e=>{e.preventDefault();lines[i].book_id=b.id;lines[i].name=b.name;renderLines()});box.appendChild(d)});calcOrder()}
-async function commitMissingLine(i){const text=(lines[i]?.name||'').trim();if(!text)return;const existing=findBook(text);if(existing){lines[i].book_id=existing.id;lines[i].name=existing.name;renderLines();return}try{const b=await ensureBook(text);lines[i].book_id=b.id;lines[i].name=b.name;renderLines()}catch(e){alert('تعذر تسجيل الكتاب: '+e.message)}}
+function lineBook(i,v){
+  if(!lines[i])return;
+
+  const row=el('lines')?.children[i];
+  const qty=Math.max(
+    1,
+    parseInt(row?.querySelector('.line-qty-input')?.value,10)||
+    parseInt(lines[i].qty,10)||1
+  );
+
+  lines[i].name=v;
+  lines[i].book_id=null;
+  lines[i].qty=qty;
+
+  const box=el('suggest'+i);
+  if(!box)return;
+
+  const matches=bookMatches(v);
+  box.innerHTML='';
+
+  if(!matches.length){
+    box.classList.add('hidden');
+    calcOrder();
+    return;
+  }
+
+  box.classList.remove('hidden');
+
+  matches.forEach(b=>{
+    const d=document.createElement('div');
+    d.textContent=b.name+' — المتاح '+b.stock+' — السعر '+money(b.price);
+    d.addEventListener('mousedown',e=>{
+      e.preventDefault();
+      lines[i].book_id=b.id;
+      lines[i].name=b.name;
+      lines[i].qty=qty;
+      renderLines();
+    });
+    box.appendChild(d);
+  });
+  calcOrder();
+}
+
+async function commitMissingLine(i){
+  const text=(lines[i]?.name||'').trim();
+  if(!text)return;
+
+  const row=el('lines')?.children[i];
+  const qty=Math.max(
+    1,
+    parseInt(row?.querySelector('.line-qty-input')?.value,10)||
+    parseInt(lines[i]?.qty,10)||1
+  );
+
+  const existing=findBook(text);
+  if(existing){
+    lines[i].book_id=existing.id;
+    lines[i].name=existing.name;
+    lines[i].qty=qty;
+    renderLines();
+    return;
+  }
+
+  try{
+    const b=await ensureBook(text);
+    lines[i].book_id=b.id;
+    lines[i].name=b.name;
+    lines[i].qty=qty;
+    renderLines();
+  }catch(e){
+    alert('تعذر تسجيل الكتاب: '+e.message);
+  }
+}
+
 function orderBookKey(e,i){if(e.key!=='Enter')return;e.preventDefault();e.stopPropagation();commitMissingLine(i)}
-function renderLines(){const tb=el('lines');tb.innerHTML='';lines.forEach((l,i)=>{const b=bookForLine(l);const price=b?Number(b.price)||0:0;const tr=document.createElement('tr');tr.innerHTML='<td class="field"><input value="'+esc(l.name||'')+'" autocomplete="off" oninput="lineBook('+i+',this.value)" onkeydown="orderBookKey(event,'+i+')"><div id="suggest'+i+'" class="suggest hidden"></div></td><td><input type="number" min="1" step="1" value="'+(Number(l.qty)||1)+'" onchange="lines['+i+'].qty=Math.max(1,Number(this.value)||1);calcOrder()"></td><td>'+money(price)+'</td><td>'+money(price*(Number(l.qty)||0))+'</td><td class="'+(b?'ok':'warn')+'">'+(b?'موجود':'ناقص / جديد')+'</td><td><button class="red" onclick="removeLine('+i+')">حذف</button></td>';tb.appendChild(tr)});calcOrder()}
+function lineStatus(l,b){const qty=Number(l.qty)||0;if(!b)return{cls:'warn',text:'ناقص / جديد'};const stock=Math.max(0,Number(b.stock)||0);if(stock>=qty)return{cls:'ok',text:'متوفر'};if(stock<=0)return{cls:'warn',text:'ناقص '+qty};return{cls:'warn',text:'متوفر '+stock+' - ناقص '+(qty-stock)}}
+function renderLines(){
+  const tb=el('lines');
+  tb.innerHTML='';
+
+  lines.forEach((l,i)=>{
+    const b=bookForLine(l);
+    const qty=Math.max(1,parseInt(l.qty,10)||1);
+    l.qty=qty;
+
+    const price=b?Number(b.price)||0:0;
+    const stock=b?Math.max(0,parseInt(b.stock,10)||0):0;
+    const available=b?Math.min(qty,stock):0;
+    const missing=b?Math.max(0,qty-available):qty;
+
+    const status=!b
+      ? '<span class="warn">كتاب جديد — ناقص '+missing+'</span>'
+      : missing>0
+        ? '<span class="warn">متوفر '+available+' — ناقص '+missing+'</span>'
+        : '<span class="ok">متوفر '+available+'</span>';
+
+    const tr=document.createElement('tr');
+    tr.dataset.index=i;
+    tr.innerHTML=
+      '<td class="field"><input class="line-book-input" data-index="'+i+'" value="'+esc(l.name||'')+'" autocomplete="off"><div id="suggest'+i+'" class="suggest hidden"></div></td>'+
+      '<td><input class="line-qty-input" data-index="'+i+'" type="number" min="1" step="1" value="'+qty+'"></td>'+
+      '<td class="line-price">'+money(price)+'</td>'+
+      '<td class="line-total">'+money(price*qty)+'</td>'+
+      '<td class="line-status">'+status+'</td>'+
+      '<td><button class="red" type="button" onclick="removeLine('+i+')">حذف</button></td>';
+    tb.appendChild(tr);
+  });
+
+  tb.querySelectorAll('.line-book-input').forEach(input=>{
+    input.addEventListener('input',()=>lineBook(Number(input.dataset.index),input.value));
+    input.addEventListener('keydown',e=>orderBookKey(e,Number(input.dataset.index)));
+  });
+
+  tb.querySelectorAll('.line-qty-input').forEach(input=>{
+    input.addEventListener('input',()=>{
+      const i=Number(input.dataset.index);
+      if(!Number.isInteger(i)||!lines[i])return;
+
+      const raw=parseInt(input.value,10);
+      if(Number.isFinite(raw)&&raw>=1) lines[i].qty=raw;
+
+      const q=Math.max(1,Number.isFinite(raw)?raw:1);
+      const row=input.closest('tr');
+      const b=bookForLine(lines[i]);
+      const price=b?Number(b.price)||0:0;
+      const stock=b?Math.max(0,parseInt(b.stock,10)||0):0;
+      const available=b?Math.min(q,stock):0;
+      const missing=b?Math.max(0,q-available):q;
+
+      row.querySelector('.line-price').textContent=money(price);
+      row.querySelector('.line-total').textContent=money(price*q);
+      row.querySelector('.line-status').innerHTML=!b
+        ? '<span class="warn">كتاب جديد — ناقص '+missing+'</span>'
+        : missing>0
+          ? '<span class="warn">متوفر '+available+' — ناقص '+missing+'</span>'
+          : '<span class="ok">متوفر '+available+'</span>';
+
+      calcOrder();
+    });
+
+    input.addEventListener('blur',()=>{
+      const i=Number(input.dataset.index);
+      if(!Number.isInteger(i)||!lines[i])return;
+      const q=Math.max(1,parseInt(input.value,10)||1);
+      lines[i].qty=q;
+      input.value=q;
+    });
+  });
+
+  calcOrder();
+}
+
+function readVisibleOrderLines(){
+  return [...el('lines').querySelectorAll('tr')].map((row,i)=>({
+    name:(row.querySelector('.line-book-input')?.value||'').trim(),
+    qty:Math.max(1,parseInt(row.querySelector('.line-qty-input')?.value,10)||1),
+    book_id:lines[i]?.book_id||null
+  })).filter(x=>x.name);
+}
+
 function calcOrder(){let total=0;lines.forEach(l=>{const b=bookForLine(l);total+=(b?Number(b.price)||0:0)*(Number(l.qty)||0)});const paid=Number(el('paid').value)||0;el('total').textContent=money(total);el('paidView').textContent=money(paid);el('due').textContent=money(Math.max(0,total-paid));el('credit').textContent=money(Math.max(0,paid-total))}
 el('paid').addEventListener('input',calcOrder);
-function mergedDraft(){const map=new Map();for(const l of lines){const name=l.name.trim();const qty=Number(l.qty)||0;if(!name||qty<=0)continue;const key=name.toLowerCase();if(map.has(key))map.get(key).qty+=qty;else map.set(key,{name,qty})}return[...map.values()]}
+function mergedDraft(){
+  const visible=readVisibleOrderLines();
+  const map=new Map();
+
+  for(const l of visible){
+    const name=l.name.trim();
+    const qty=Math.max(1,parseInt(l.qty,10)||1);
+    const b=l.book_id?books.find(x=>x.id===l.book_id):findBook(name);
+    const key=b?('id:'+b.id):('name:'+name.toLowerCase());
+
+    if(map.has(key)) map.get(key).qty+=qty;
+    else map.set(key,{name:b?.name||name,qty});
+  }
+
+  return [...map.values()];
+}
+
 async function ensureBook(name){const existing=findBook(name);if(existing)return existing;const {data,error}=await db.from('books').insert({name:name.trim(),stock:0,price:0}).select().single();if(error){const retry=findBook(name);if(retry)return retry;throw error}books.push(data);return data}
-async function saveOrder(){const customer=el('customer').value.trim();const draft=mergedDraft();if(!customer)return alert('اكتب اسم العميل');if(!draft.length)return alert('أضف كتابًا واحدًا على الأقل');suppressRefresh=true;try{const {data,error}=await db.rpc('save_library_order_v2',{p_order_id:editingId,p_customer_name:customer,p_paid:Number(el('paid').value)||0,p_notes:el('notes').value,p_items:draft});if(error)throw error;el('orderNo').value=data.order_no;suppressRefresh=false;await refreshAll();alert(editingId?'تم تعديل الطلب بنجاح':'تم حفظ الطلب بنجاح');newOrder();show('orders')}catch(e){suppressRefresh=false;await refreshAll();alert('حصل خطأ: '+(e.message||e))}}
-function editOrder(id){const o=orders.find(x=>x.id===id);if(!o)return;editingId=id;el('orderTitle').textContent='تعديل الطلب #'+o.order_no;el('saveBtn').textContent='حفظ التعديل';el('customer').value=o.customer_name||'';el('paid').value=o.paid||0;el('notes').value=o.notes||'';el('orderNo').value=o.order_no;lines=(o.order_items||[]).map(i=>({book_id:i.book_id,name:i.books?.name||'',qty:i.quantity}));if(!lines.length)lines=[{book_id:null,name:'',qty:1}];renderLines();show('newOrder')}
+async function saveOrder(){
+  const customer=el('customer').value.trim();
+  const draft=mergedDraft();
+
+  if(!customer)return alert('اكتب اسم العميل');
+  if(!draft.length)return alert('أضف كتابًا واحدًا على الأقل');
+
+  suppressRefresh=true;
+  const wasEditing=!!editingId;
+
+  try{
+    const payload=draft.map(item=>({
+      name:item.name,
+      quantity:Math.max(1,parseInt(item.qty,10)||1)
+    }));
+
+    const {data,error}=await db.rpc('save_library_order_v2',{
+      p_order_id:editingId,
+      p_customer_name:customer,
+      p_paid:Number(el('paid').value)||0,
+      p_notes:el('notes').value,
+      p_items:payload
+    });
+
+    if(error)throw error;
+
+    suppressRefresh=false;
+    await refreshAll();
+    alert(wasEditing?'تم تعديل الطلب بنجاح':'تم حفظ الطلب بنجاح');
+    newOrder();
+    show('orders');
+  }catch(e){
+    suppressRefresh=false;
+    await refreshAll();
+    alert('حصل خطأ: '+(e.message||e));
+  }
+}
+
+function editOrder(id){const o=orders.find(x=>x.id===id);if(!o)return;editingId=id;el('orderTitle').textContent='تعديل الطلب #'+o.order_no;el('saveBtn').textContent='حفظ التعديل';el('customer').value=o.customer_name||'';el('paid').value=o.paid||0;el('notes').value=o.notes||'';el('orderNo').value=o.order_no;lines=(o.order_items||[]).map(i=>({book_id:i.book_id,name:i.books?.name||'',qty:Math.max(1,parseInt(i.quantity,10)||1)}));if(!lines.length)lines=[{book_id:null,name:'',qty:1}];renderLines();show('newOrder')}
 async function addPayment(id){const amount=Number(prompt('قيمة الدفعة الجديدة؟','0'));if(!(amount>0))return;try{const {error}=await db.rpc('add_library_payment',{p_order_id:id,p_amount:amount});if(error)throw error;await refreshAll()}catch(e){alert('حصل خطأ: '+e.message)}}
 async function deleteOrder(id){const o=orders.find(x=>x.id===id);if(!o||!confirm('حذف الطلب #'+o.order_no+' وإرجاع الكميات المخصصة للمخزن؟'))return;try{const {error}=await db.rpc('delete_library_order',{p_order_id:id});if(error)throw error;await refreshAll()}catch(e){alert('حصل خطأ: '+e.message)}}
 function orderFinancials(o){const orderValue=(o.order_items||[]).reduce((s,i)=>s+Number(i.quantity||0)*Number(i.unit_price||0),0);const deliveredValue=(o.order_items||[]).reduce((s,i)=>s+Math.min(Number(i.delivered_qty||0),Number(i.quantity||0))*Number(i.unit_price||0),0);const paid=Number(o.paid||0);return{orderValue,deliveredValue,paid,due:Math.max(0,deliveredValue-paid),credit:Math.max(0,paid-deliveredValue),remaining:Math.max(0,orderValue-deliveredValue)}}
-function renderOrders(){const q=(el('orderSearch')?.value||'').toLowerCase();const rows=orders.filter(o=>String(o.order_no).includes(q)||(o.customer_name||'').toLowerCase().includes(q));el('ordersTable').innerHTML='<table><thead><tr><th>الطلب</th><th>العميل</th><th>الكتب والتسليم</th><th>المدفوع</th><th>قيمة الطلب</th><th>قيمة المُسلَّم</th><th>عليه الآن</th><th>له الآن</th><th>إجراءات</th></tr></thead><tbody>'+rows.map(o=>{const f=orderFinancials(o);const booksHtml=(o.order_items||[]).map(i=>{const qty=Number(i.quantity||0);const delivered=Math.min(Number(i.delivered_qty||0),qty);const available=Number(i.allocated||0);const canDeliver=available>0;return '<div class="bookline"><div>'+esc(i.books?.name||'')+' × '+qty+' '+(i.missing?' <span class="warn">(ناقص '+i.missing+')</span>':'')+'</div><div class="delivery-tools"><span class="pill">المسلّم '+delivered+'/'+qty+'</span><input type="number" min="0" max="'+Math.min(qty,available)+'" value="'+delivered+'" id="delivery-'+i.id+'" '+(canDeliver?'':'disabled')+'><button class="green" onclick="saveDelivery(\''+i.id+'\')" '+(canDeliver?'':'disabled')+'>حفظ التسليم</button></div></div>'}).join('');const due=f.due>0?'<span class="negative">'+money(f.due)+'</span>':money(f.due);const credit=f.credit>0?'<span class="positive">'+money(f.credit)+'</span>':money(f.credit);return '<tr><td>'+o.order_no+'</td><td>'+esc(o.customer_name)+'</td><td>'+booksHtml+'</td><td>'+money(f.paid)+'</td><td>'+money(f.orderValue)+'</td><td>'+money(f.deliveredValue)+'</td><td>'+due+'</td><td>'+credit+'</td><td><button onclick="editOrder(\''+o.id+'\')">تعديل</button> <button class="green" onclick="addPayment(\''+o.id+'\')">دفعة</button> <button class="red" onclick="deleteOrder(\''+o.id+'\')">حذف</button></td></tr>'}).join('')+'</tbody></table>'}
+function renderOrders(){const q=(el('orderSearch')?.value||'').toLowerCase();const rows=orders.filter(o=>String(o.order_no).includes(q)||(o.customer_name||'').toLowerCase().includes(q));el('ordersTable').innerHTML='<table><thead><tr><th>الطلب</th><th>العميل</th><th>الكتب والتسليم</th><th>المدفوع</th><th>قيمة الطلب</th><th>قيمة المُسلَّم</th><th>عليه الآن</th><th>له الآن</th><th>إجراءات</th></tr></thead><tbody>'+rows.map(o=>{const f=orderFinancials(o);const booksHtml=(o.order_items||[]).map(i=>{const qty=Number(i.quantity||0);const delivered=Math.min(Number(i.delivered_qty||0),qty);const available=Number(i.allocated||0);const canDeliver=available>0;return '<div class="bookline"><div>'+esc(i.books?.name||'')+' × '+qty+' '+(i.missing?' <span class="warn">(ناقص '+i.missing+')</span>':'')+'</div><div class="delivery-tools"><span class="pill">المسلّم '+delivered+'/'+qty+'</span><input type="number" min="0" max="'+Math.min(qty,available)+'" value="'+delivered+'" id="delivery-'+i.id+'" '+(canDeliver?'':'disabled')+'><button class="green" onclick="saveDelivery(\''+i.id+'\')" '+(canDeliver?'':'disabled')+'>حفظ التسليم</button></div></div>'}).join('');const due=f.due>0?'<span class="negative">'+money(f.due)+'</span>':money(f.due);const credit=f.credit>0?'<span class="positive">'+money(f.credit)+'</span>':money(f.credit);return '<tr><td>'+o.order_no+'</td><td>'+esc(o.customer_name)+'</td><td>'+booksHtml+'</td><td>'+money(f.paid)+'</td><td>'+money(f.orderValue)+'</td><td>'+money(f.deliveredValue)+'</td><td>'+due+'</td><td>'+credit+'</td><td><button onclick="editOrder(\''+o.id+'\')">تعديل</button> <button class="green" onclick="addPayment(\''+o.id+'\')">دفعة</button> <button class="red" onclick="deleteOrder(\''+o.id+'\')">حذف</button> <button class="orange" onclick="printInvoice(\''+o.id+'\')">طباعة الفاتورة</button></td></tr>'}).join('')+'</tbody></table>'}
 async function saveDelivery(itemId){const input=el('delivery-'+itemId);if(!input)return;const qty=Number(input.value);if(!Number.isFinite(qty)||qty<0)return alert('كمية التسليم غير صحيحة');try{const {error}=await db.rpc('set_library_delivery',{p_order_item_id:itemId,p_delivered_qty:Math.floor(qty)});if(error)throw error;await refreshAll()}catch(e){alert('حصل خطأ أثناء التسليم: '+e.message)}}
 function inventorySearch(q){const box=el('invSuggest');const matches=bookMatches(q);box.innerHTML='';if(!matches.length){box.classList.add('hidden');return}box.classList.remove('hidden');matches.forEach(b=>{const d=document.createElement('div');d.textContent=b.name+' — المتاح '+b.stock+' — السعر '+money(b.price);d.addEventListener('mousedown',e=>{e.preventDefault();selectInventoryBook(b.id)});box.appendChild(d)})}
 function inventoryKey(e){if(e.key!=='Enter')return;e.preventDefault();const first=bookMatches(el('invName').value)[0];if(first)selectInventoryBook(first.id)}
@@ -117,6 +367,51 @@ function renderCustomers(){const map={};for(const o of orders){if(!map[o.custome
 function renderHome(){el('homeBooks').textContent=books.length;el('homeOrders').textContent=orders.length;el('homeMissing').textContent=orders.reduce((s,o)=>s+(o.order_items||[]).reduce((a,i)=>a+(Number(i.missing)||0),0),0);el('homePaid').textContent=money(orders.reduce((s,o)=>s+(Number(o.paid)||0),0))}
 document.addEventListener('click',e=>{document.querySelectorAll('.suggest').forEach(x=>{if(!x.contains(e.target)&&!x.parentElement.contains(e.target))x.classList.add('hidden')})});
 (async()=>{try{await refreshAll();setupRealtime();show('home')}catch(e){console.error(e);setConnection(false,'تعذر الاتصال')}})();
+
+function printInvoice(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o){alert('الطلب غير موجود');return;}
+
+  const f=orderFinancials(o);
+  const rows=(o.order_items||[]).map(it=>{
+    const qty=Math.max(0,Number(it.quantity)||0);
+    const unit=Number(it.unit_price)||0;
+    const delivered=Math.min(qty,Math.max(0,Number(it.delivered_qty)||0));
+    return '<tr><td>'+esc(it.books?.name||'')+'</td><td>'+qty+'</td><td>'+money(unit)+'</td><td>'+money(qty*unit)+'</td><td>'+delivered+' / '+qty+'</td></tr>';
+  }).join('');
+
+  const area=el('printArea');
+  if(!area){alert('تعذر تجهيز الفاتورة للطباعة');return;}
+
+  area.innerHTML=
+    '<div class="title"><h1>فاتورة طلب</h1><div>نظام المكتبة</div></div>'+
+    '<div class="meta">'+
+      '<div><b>رقم الطلب:</b> '+o.order_no+'</div>'+
+      '<div><b>العميل:</b> '+esc(o.customer_name||'')+'</div>'+
+      '<div><b>التاريخ:</b> '+new Date(o.created_at).toLocaleString('ar-EG')+'</div>'+
+      '<div><b>الحالة:</b> '+(f.remaining<=0?'تم التسليم بالكامل':'لم يكتمل التسليم')+'</div>'+
+    '</div>'+
+    '<table><thead><tr><th>الكتاب</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>المسلّم</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="totals">'+
+      '<div><span>المدفوع</span><b>'+money(f.paid)+'</b></div>'+
+      '<div><span>قيمة الطلب</span><b>'+money(f.orderValue)+'</b></div>'+
+      '<div><span>قيمة المُسلَّم</span><b>'+money(f.deliveredValue)+'</b></div>'+
+      '<div><span>المتبقي</span><b>'+money(f.remaining)+'</b></div>'+
+      '<div class="'+(f.due>0?'due':'')+'"><span>عليه الآن</span><b>'+money(f.due)+'</b></div>'+
+      '<div class="'+(f.credit>0?'credit':'')+'"><span>له الآن</span><b>'+money(f.credit)+'</b></div>'+
+    '</div>'+
+    (o.notes?'<div style="margin-top:10px"><b>ملاحظات:</b> '+esc(o.notes)+'</div>':'')+
+    '<div class="footer">شكرًا لتعاملكم معنا</div>';
+
+  const oldTitle=document.title;
+  document.title='فاتورة الطلب #'+o.order_no;
+
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{document.title=oldTitle;area.innerHTML='';},500);
+  },100);
+}
+
 </script>
-</body>
+<div id="printArea" aria-hidden="true"></div></body>
 </html>
