@@ -104,13 +104,9 @@ async function refreshAll(){
   try{
     await Promise.all([loadBooks(),loadOrders()]);
     renderHome();
-
     const page=el('newOrder');
-    const orderFormOpen=page && !page.classList.contains('hidden');
-    if(!orderFormOpen){
-      renderLines();
-    }
-
+    const editorOpen=page && !page.classList.contains('hidden');
+    if(!editorOpen) renderLines();
     renderOrders();
     renderInventory();
     renderMissing();
@@ -131,24 +127,19 @@ function bookMatches(q){q=(q||'').trim().toLowerCase();if(!q)return[];return boo
 function bookForLine(l){return l.book_id?books.find(b=>b.id===l.book_id):findBook(l.name)}
 function lineBook(i,v){
   if(!lines[i])return;
-
   const row=el('lines')?.children[i];
-  const qty=Math.max(
-    1,
+  const qty=Math.max(1,
     parseInt(row?.querySelector('.line-qty-input')?.value,10)||
     parseInt(lines[i].qty,10)||1
   );
-
   lines[i].name=v;
   lines[i].book_id=null;
   lines[i].qty=qty;
 
   const box=el('suggest'+i);
   if(!box)return;
-
   const matches=bookMatches(v);
   box.innerHTML='';
-
   if(!matches.length){
     box.classList.add('hidden');
     calcOrder();
@@ -156,12 +147,11 @@ function lineBook(i,v){
   }
 
   box.classList.remove('hidden');
-
   matches.forEach(b=>{
     const d=document.createElement('div');
     d.textContent=b.name+' — المتاح '+b.stock+' — السعر '+money(b.price);
-    d.addEventListener('mousedown',e=>{
-      e.preventDefault();
+    d.addEventListener('mousedown',ev=>{
+      ev.preventDefault();
       lines[i].book_id=b.id;
       lines[i].name=b.name;
       lines[i].qty=qty;
@@ -175,10 +165,8 @@ function lineBook(i,v){
 async function commitMissingLine(i){
   const text=(lines[i]?.name||'').trim();
   if(!text)return;
-
   const row=el('lines')?.children[i];
-  const qty=Math.max(
-    1,
+  const qty=Math.max(1,
     parseInt(row?.querySelector('.line-qty-input')?.value,10)||
     parseInt(lines[i]?.qty,10)||1
   );
@@ -213,7 +201,6 @@ function renderLines(){
     const b=bookForLine(l);
     const qty=Math.max(1,parseInt(l.qty,10)||1);
     l.qty=qty;
-
     const price=b?Number(b.price)||0:0;
     const stock=b?Math.max(0,parseInt(b.stock,10)||0):0;
     const available=b?Math.min(qty,stock):0;
@@ -246,9 +233,8 @@ function renderLines(){
     input.addEventListener('input',()=>{
       const i=Number(input.dataset.index);
       if(!Number.isInteger(i)||!lines[i])return;
-
       const raw=parseInt(input.value,10);
-      if(Number.isFinite(raw)&&raw>=1) lines[i].qty=raw;
+      if(Number.isFinite(raw)&&raw>=1)lines[i].qty=raw;
 
       const q=Math.max(1,Number.isFinite(raw)?raw:1);
       const row=input.closest('tr');
@@ -265,7 +251,6 @@ function renderLines(){
         : missing>0
           ? '<span class="warn">متوفر '+available+' — ناقص '+missing+'</span>'
           : '<span class="ok">متوفر '+available+'</span>';
-
       calcOrder();
     });
 
@@ -301,8 +286,8 @@ function mergedDraft(){
     const b=l.book_id?books.find(x=>x.id===l.book_id):findBook(name);
     const key=b?('id:'+b.id):('name:'+name.toLowerCase());
 
-    if(map.has(key)) map.get(key).qty+=qty;
-    else map.set(key,{name:b?.name||name,qty});
+    if(map.has(key))map.get(key).qty+=qty;
+    else map.set(key,{book_id:b?.id||null,name:b?.name||name,qty});
   }
 
   return [...map.values()];
@@ -317,15 +302,16 @@ async function saveOrder(){
   if(!draft.length)return alert('أضف كتابًا واحدًا على الأقل');
 
   suppressRefresh=true;
-  const wasEditing=!!editingId;
+  const editing=!!editingId;
 
   try{
     const payload=draft.map(item=>({
+      book_id:item.book_id||null,
       name:item.name,
       quantity:Math.max(1,parseInt(item.qty,10)||1)
     }));
 
-    const {data,error}=await db.rpc('save_library_order_v2',{
+    const {data,error}=await db.rpc('save_library_order_v3',{
       p_order_id:editingId,
       p_customer_name:customer,
       p_paid:Number(el('paid').value)||0,
@@ -337,7 +323,7 @@ async function saveOrder(){
 
     suppressRefresh=false;
     await refreshAll();
-    alert(wasEditing?'تم تعديل الطلب بنجاح':'تم حفظ الطلب بنجاح');
+    alert(editing?'تم تعديل الطلب بنجاح':'تم حفظ الطلب بنجاح');
     newOrder();
     show('orders');
   }catch(e){
