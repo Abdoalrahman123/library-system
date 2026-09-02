@@ -10,24 +10,38 @@
 @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}th,td{font-size:13px}}
 @media(max-width:560px){.grid{grid-template-columns:1fr}.wrap{padding:0 9px}header{padding:13px 14px}header h1{font-size:20px}nav{overflow:auto;flex-wrap:nowrap}nav button{white-space:nowrap}}
 
+
+
 #printArea{display:none}
+@page{margin:10mm}
 @media print{
   body{background:#fff!important}
-  header,.wrap{display:none!important}
-  #printArea{display:block!important;direction:rtl;background:#fff;color:#111;width:100%;max-width:800px;margin:0 auto;padding:18px;font-family:"Segoe UI",Tahoma,Arial,sans-serif}
-  #printArea .title{text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:14px}
-  #printArea .title h1{margin:0 0 4px;font-size:26px}
-  #printArea .meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-  #printArea .meta div{border:1px solid #ccc;border-radius:5px;padding:7px}
-  #printArea table{width:100%;border-collapse:collapse;margin-top:8px}
+  body>header, body>.wrap{display:none!important}
+  #printArea{
+    display:block!important;
+    direction:rtl;
+    background:#fff;
+    color:#111;
+    width:100%;
+    max-width:800px;
+    margin:0 auto;
+    padding:12px 16px;
+    font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+  }
+  #printArea .title{text-align:center;border-bottom:2px solid #222;padding-bottom:9px;margin-bottom:13px}
+  #printArea .title h1{margin:0;font-size:25px}
+  #printArea .meta{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:13px}
+  #printArea .meta div{border:1px solid #ccc;padding:7px;border-radius:5px}
+  #printArea table{width:100%;border-collapse:collapse}
   #printArea th,#printArea td{border:1px solid #bbb;padding:7px;text-align:right}
   #printArea th{background:#f1f1f1}
-  #printArea .totals{width:360px;margin:15px 0 0 auto}
+  #printArea .totals{width:360px;margin:14px 0 0 auto}
   #printArea .totals div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ddd}
   #printArea .due{color:#c9344e;font-weight:800}
   #printArea .credit{color:#16895a;font-weight:800}
-  #printArea .footer{text-align:center;margin-top:20px;color:#666;font-size:11px}
+  #printArea .footer{text-align:center;margin-top:18px;color:#666;font-size:11px}
 }
+
 </style>
 </head>
 <body>
@@ -39,7 +53,7 @@
 <button onclick="show('orders')">الطلبات</button>
 <button onclick="show('inventory')">المخزن</button>
 <button onclick="show('missing')">النواقص</button>
-<button onclick="show('customers')">العملاء</button>
+<button onclick="show('customers')">العملاء</button><button onclick="show('completed')">تم التسليم</button>
 </nav>
 
 <section id="home" class="page">
@@ -79,14 +93,18 @@
 <div class="field"><label>كمية الإضافة</label><input id="invAdd" type="number" min="1" step="1" placeholder="مثال 5"></div>
 </div>
 <div class="actions" style="margin-top:10px"><button onclick="saveBook()">حفظ / تعديل</button><button class="green" onclick="addStock()">إضافة مخزون</button><button class="gray" onclick="clearInventoryForm()">تفريغ</button></div>
-<p class="muted">التعديل يغيّر الكمية الحالية والسعر. إضافة مخزون تزيد الكمية وتوزع الزيادة تلقائيًا على النواقص من أقدم طلب.</p>
+<p class="muted">التعديل يغيّر الكمية الحالية والسعر. إضافة مخزون تزيد الكمية وتوزع الزيادة تلقائيًا على النواقص من أقدم طلب. عند عمل كتاب جديد بسعر غير محدد، ستفتح هذه الصفحة تلقائيًا لإدخال سعره.</p>
 <div id="inventoryTable"></div></div></section>
 
 <section id="missing" class="page hidden"><div class="card"><h2>النواقص</h2><div id="missingTable"></div></div></section>
+<section id="completed" class="page hidden"><div class="card"><h2>تم التسليم</h2><p class="muted">الطلبات التي تم تسليم جميع الكتب والكميات المطلوبة فيها. يمكنك تعديل الطلب أو طباعة الفاتورة.</p><div id="completedTable"></div></div></section>
 <section id="customers" class="page hidden"><div class="card"><h2>العملاء</h2><div id="customersTable"></div></div></section>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js">
+
+
+</script>
 <script>
 const SUPABASE_URL='https://inhhbjzfuxhcuctsfcpp.supabase.co';
 const SUPABASE_KEY='sb_publishable_RPXdIaSFg6aq3rtUc_vxGA_b31xrp0X';
@@ -95,7 +113,7 @@ let books=[],orders=[],lines=[],editingId=null,suppressRefresh=false,realtimeCha
 const el=id=>document.getElementById(id); const money=n=>(Number(n)||0).toFixed(2);
 const esc=s=>String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 function setConnection(ok,msg){el('connection').textContent=msg;el('connection').className='status '+(ok?'ok':'bad')}
-function show(id){document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));el(id).classList.remove('hidden');if(id==='home')renderHome();if(id==='orders')renderOrders();if(id==='inventory')renderInventory();if(id==='missing')renderMissing();if(id==='customers')renderCustomers()}
+function show(id){document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));el(id).classList.remove('hidden');if(id==='home')renderHome();if(id==='orders')renderOrders();if(id==='inventory')renderInventory();if(id==='missing')renderMissing();if(id==='customers')renderCustomers();if(id==='completed')renderCompleted()}
 async function loadBooks(){const {data,error}=await db.from('books').select('*').order('name');if(error)throw error;books=data||[]}
 async function loadOrders(){const {data,error}=await db.from('orders').select('id,order_no,customer_name,paid,notes,created_at,updated_at,order_items(id,book_id,quantity,unit_price,allocated,missing,delivered_qty,created_at,books(id,name,stock,price))').order('order_no',{ascending:false});if(error)throw error;orders=data||[]}
 function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>refreshAll(),120)}
@@ -111,6 +129,7 @@ async function refreshAll(){
     renderInventory();
     renderMissing();
     renderCustomers();
+    renderCompleted();
     setConnection(true,'متصل بالسحابة');
   }catch(e){
     console.error(e);
@@ -337,7 +356,122 @@ function editOrder(id){const o=orders.find(x=>x.id===id);if(!o)return;editingId=
 async function addPayment(id){const amount=Number(prompt('قيمة الدفعة الجديدة؟','0'));if(!(amount>0))return;try{const {error}=await db.rpc('add_library_payment',{p_order_id:id,p_amount:amount});if(error)throw error;await refreshAll()}catch(e){alert('حصل خطأ: '+e.message)}}
 async function deleteOrder(id){const o=orders.find(x=>x.id===id);if(!o||!confirm('حذف الطلب #'+o.order_no+' وإرجاع الكميات المخصصة للمخزن؟'))return;try{const {error}=await db.rpc('delete_library_order',{p_order_id:id});if(error)throw error;await refreshAll()}catch(e){alert('حصل خطأ: '+e.message)}}
 function orderFinancials(o){const orderValue=(o.order_items||[]).reduce((s,i)=>s+Number(i.quantity||0)*Number(i.unit_price||0),0);const deliveredValue=(o.order_items||[]).reduce((s,i)=>s+Math.min(Number(i.delivered_qty||0),Number(i.quantity||0))*Number(i.unit_price||0),0);const paid=Number(o.paid||0);return{orderValue,deliveredValue,paid,due:Math.max(0,deliveredValue-paid),credit:Math.max(0,paid-deliveredValue),remaining:Math.max(0,orderValue-deliveredValue)}}
-function renderOrders(){const q=(el('orderSearch')?.value||'').toLowerCase();const rows=orders.filter(o=>String(o.order_no).includes(q)||(o.customer_name||'').toLowerCase().includes(q));el('ordersTable').innerHTML='<table><thead><tr><th>الطلب</th><th>العميل</th><th>الكتب والتسليم</th><th>المدفوع</th><th>قيمة الطلب</th><th>قيمة المُسلَّم</th><th>عليه الآن</th><th>له الآن</th><th>إجراءات</th></tr></thead><tbody>'+rows.map(o=>{const f=orderFinancials(o);const booksHtml=(o.order_items||[]).map(i=>{const qty=Number(i.quantity||0);const delivered=Math.min(Number(i.delivered_qty||0),qty);const available=Number(i.allocated||0);const canDeliver=available>0;return '<div class="bookline"><div>'+esc(i.books?.name||'')+' × '+qty+' '+(i.missing?' <span class="warn">(ناقص '+i.missing+')</span>':'')+'</div><div class="delivery-tools"><span class="pill">المسلّم '+delivered+'/'+qty+'</span><input type="number" min="0" max="'+Math.min(qty,available)+'" value="'+delivered+'" id="delivery-'+i.id+'" '+(canDeliver?'':'disabled')+'><button class="green" onclick="saveDelivery(\''+i.id+'\')" '+(canDeliver?'':'disabled')+'>حفظ التسليم</button></div></div>'}).join('');const due=f.due>0?'<span class="negative">'+money(f.due)+'</span>':money(f.due);const credit=f.credit>0?'<span class="positive">'+money(f.credit)+'</span>':money(f.credit);return '<tr><td>'+o.order_no+'</td><td>'+esc(o.customer_name)+'</td><td>'+booksHtml+'</td><td>'+money(f.paid)+'</td><td>'+money(f.orderValue)+'</td><td>'+money(f.deliveredValue)+'</td><td>'+due+'</td><td>'+credit+'</td><td><button onclick="editOrder(\''+o.id+'\')">تعديل</button> <button class="green" onclick="addPayment(\''+o.id+'\')">دفعة</button> <button class="red" onclick="deleteOrder(\''+o.id+'\')">حذف</button> <button class="orange" onclick="printInvoice(\''+o.id+'\')">طباعة الفاتورة</button></td></tr>'}).join('')+'</tbody></table>'}
+function isOrderFullyDelivered(o){
+  return (o.order_items||[]).length>0 &&
+    (o.order_items||[]).every(i=>Number(i.delivered_qty||0)>=Number(i.quantity||0));
+}
+
+function renderOrders(){
+  const q=(el('orderSearch')?.value||'').toLowerCase();
+  const rows=orders.filter(o=>
+    !isOrderFullyDelivered(o) &&
+    (String(o.order_no).includes(q)||(o.customer_name||'').toLowerCase().includes(q))
+  );
+
+  el('ordersTable').innerHTML=
+    '<table><thead><tr>'+
+      '<th>الطلب</th><th>العميل</th><th>الكتب والتسليم</th>'+
+      '<th>المدفوع</th><th>قيمة الطلب</th><th>قيمة المُسلَّم</th>'+
+      '<th>عليه الآن</th><th>له الآن</th><th>إجراءات</th>'+
+    '</tr></thead><tbody>'+
+    rows.map(o=>{
+      const f=orderFinancials(o);
+
+      const booksHtml=(o.order_items||[]).map(i=>{
+        const qty=Math.max(0,Number(i.quantity)||0);
+        const allocated=Math.min(qty,Math.max(0,Number(i.allocated)||0));
+        const missing=Math.max(0,Number(i.missing)||0);
+        const delivered=Math.min(qty,Math.max(0,Number(i.delivered_qty)||0));
+        const canDeliver=allocated>delivered;
+
+        const madeBtn=missing>0
+          ? '<button class="orange" data-made-id="'+i.id+'" onclick="markBookMade(this.dataset.madeId)">اتعمل +1</button>'
+          : '';
+
+        return '<div class="bookline">'+
+          '<div><b>'+esc(i.books?.name||'')+'</b> — المطلوب: <b>'+qty+
+          '</b> — متوفر للطلب: <b>'+allocated+'</b> — ناقص: <b class="'+(missing?'warn':'ok')+'">'+missing+
+          '</b></div>'+
+          '<div class="delivery-tools">'+
+            '<span class="pill">المسلّم '+delivered+'/'+qty+'</span>'+
+            madeBtn+
+            '<input type="number" min="0" max="'+allocated+'" value="'+delivered+'" id="delivery-'+i.id+'" '+(canDeliver?'':'disabled')+'>'+
+            '<button class="green" onclick="saveDelivery(\''+i.id+'\')" '+(canDeliver?'':'disabled')+'>حفظ التسليم</button>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+
+      const due=f.due>0?'<span class="negative">'+money(f.due)+'</span>':money(f.due);
+      const credit=f.credit>0?'<span class="positive">'+money(f.credit)+'</span>':money(f.credit);
+
+      return '<tr>'+
+        '<td>'+o.order_no+'</td>'+
+        '<td>'+esc(o.customer_name)+'</td>'+
+        '<td>'+booksHtml+'</td>'+
+        '<td>'+money(f.paid)+'</td>'+
+        '<td>'+money(f.orderValue)+'</td>'+
+        '<td>'+money(f.deliveredValue)+'</td>'+
+        '<td>'+due+'</td>'+
+        '<td>'+credit+'</td>'+
+        '<td>'+
+          '<button onclick="editOrder(this.dataset.id)" data-id="'+o.id+'">تعديل</button> '+
+          '<button class="green" onclick="addPayment(this.dataset.id)" data-id="'+o.id+'">دفعة</button> '+
+          '<button class="red" onclick="deleteOrder(this.dataset.id)" data-id="'+o.id+'">حذف</button> '+
+          '<button class="orange" onclick="printInvoice(this.dataset.id)" data-id="'+o.id+'">طباعة الفاتورة</button>'+
+        '</td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table>';
+}
+
+async function markBookMade(itemId){
+  try{
+    // Capture the book before refresh; the RPC is not required to return book_id.
+    let sourceItem=null;
+    for(const o of orders){
+      sourceItem=(o.order_items||[]).find(i=>i.id===itemId);
+      if(sourceItem)break;
+    }
+
+    if(!sourceItem){
+      return alert('لم أجد الكتاب المطلوب.');
+    }
+
+    const bookId=sourceItem.book_id;
+    const bookName=sourceItem.books?.name||'';
+
+    const {error}=await db.rpc('mark_book_made',{p_order_item_id:itemId});
+    if(error)throw error;
+
+    // Reload cloud data first so the inventory form receives the fresh record.
+    await refreshAll();
+
+    const book=books.find(b=>b.id===bookId) || findBook(bookName);
+
+    // A newly made book with no price must immediately open the inventory editor.
+    if(book && Number(book.price||0)<=0){
+      selectInventoryBook(book.id);
+      show('inventory');
+
+      setTimeout(()=>{
+        const priceInput=el('invPrice');
+        if(priceInput){
+          priceInput.focus();
+          priceInput.select();
+        }
+      },100);
+
+      alert('تم تجهيز نسخة «'+book.name+'» للعميل. اكتب سعر الكتاب في خانة «سعر القطعة» ثم اضغط «حفظ / تعديل».');
+      return;
+    }
+
+    alert('تم تسجيل النسخة للعميل وتم تحديث المخزن.');
+  }catch(e){
+    alert('تعذر تسجيل الكتاب كاتعمل: '+(e.message||e));
+  }
+}
+
+
 async function saveDelivery(itemId){const input=el('delivery-'+itemId);if(!input)return;const qty=Number(input.value);if(!Number.isFinite(qty)||qty<0)return alert('كمية التسليم غير صحيحة');try{const {error}=await db.rpc('set_library_delivery',{p_order_item_id:itemId,p_delivered_qty:Math.floor(qty)});if(error)throw error;await refreshAll()}catch(e){alert('حصل خطأ أثناء التسليم: '+e.message)}}
 function inventorySearch(q){const box=el('invSuggest');const matches=bookMatches(q);box.innerHTML='';if(!matches.length){box.classList.add('hidden');return}box.classList.remove('hidden');matches.forEach(b=>{const d=document.createElement('div');d.textContent=b.name+' — المتاح '+b.stock+' — السعر '+money(b.price);d.addEventListener('mousedown',e=>{e.preventDefault();selectInventoryBook(b.id)});box.appendChild(d)})}
 function inventoryKey(e){if(e.key!=='Enter')return;e.preventDefault();const first=bookMatches(el('invName').value)[0];if(first)selectInventoryBook(first.id)}
@@ -349,35 +483,93 @@ function missingTotal(bookId){return orders.reduce((sum,o)=>sum+(o.order_items||
 function renderInventory(){el('inventoryTable').innerHTML='<table><thead><tr><th>الكتاب</th><th>المتاح</th><th>الناقص</th><th>السعر</th><th>إجراءات</th></tr></thead><tbody>'+books.map(b=>'<tr class="'+(missingTotal(b.id)>0?'dangerrow':'')+'"><td>'+esc(b.name)+'</td><td>'+b.stock+'</td><td>'+missingTotal(b.id)+'</td><td>'+money(b.price)+'</td><td><button onclick="selectInventoryBook(\''+b.id+'\')">تعديل</button> <button class="red" onclick="deleteBook(\''+b.id+'\')">مسح</button></td></tr>').join('')+'</tbody></table>'}
 async function deleteBook(id){const b=books.find(x=>x.id===id);if(!b)return;if(!confirm('مسح الكتاب «'+b.name+'» من المخزن؟'))return;try{const {error}=await db.rpc('delete_library_book',{p_book_id:id});if(error)throw error;clearInventoryForm();await refreshAll();alert('تم مسح الكتاب')}catch(e){alert('تعذر مسح الكتاب: '+e.message)}}
 function renderMissing(){const map={};for(const o of orders)for(const i of o.order_items||[]){if(!(Number(i.missing)>0))continue;if(!map[i.book_id])map[i.book_id]={name:i.books?.name||'',total:0,clients:{}};map[i.book_id].total+=Number(i.missing);map[i.book_id].clients[o.customer_name]=(map[i.book_id].clients[o.customer_name]||0)+Number(i.missing)}el('missingTable').innerHTML='<table><thead><tr><th>الكتاب</th><th>الناقص</th><th>حسب العميل</th></tr></thead><tbody>'+Object.values(map).map(x=>'<tr class="dangerrow"><td>'+esc(x.name)+'</td><td>'+x.total+'</td><td>'+Object.entries(x.clients).map(([c,q])=>esc(c)+': '+q).join('<br>')+'</td></tr>').join('')+'</tbody></table>'}
+function renderCompleted(){
+  const q=(el('completedSearch')?.value||'').toLowerCase();
+  const rows=orders.filter(o=>
+    isOrderFullyDelivered(o) &&
+    (String(o.order_no).includes(q)||(o.customer_name||'').toLowerCase().includes(q))
+  );
+
+  el('completedTable').innerHTML=
+    '<input id="completedSearch" placeholder="ابحث برقم الطلب أو اسم العميل" value="'+esc(el('completedSearch')?.value||'')+'" oninput="renderCompleted()">'+
+    '<table><thead><tr><th>الطلب</th><th>العميل</th><th>الكتب</th><th>قيمة الطلب</th><th>المدفوع</th><th>الحساب</th><th>الفاتورة</th></tr></thead><tbody>'+
+    rows.map(o=>{
+      const f=orderFinancials(o);
+      const books=(o.order_items||[]).map(i=>esc(i.books?.name||'')+' × '+Number(i.quantity||0)).join('<br>');
+      const balance=f.due>0
+        ? '<span class="negative">عليه '+money(f.due)+'</span>'
+        : f.credit>0
+          ? '<span class="positive">له '+money(f.credit)+'</span>'
+          : '<span class="ok">متساوي</span>';
+      return '<tr>'+
+        '<td>'+o.order_no+'</td>'+
+        '<td>'+esc(o.customer_name||'')+'</td>'+
+        '<td>'+books+'</td>'+
+        '<td>'+money(f.orderValue)+'</td>'+
+        '<td>'+money(f.paid)+'</td>'+
+        '<td>'+balance+'</td>'+
+        '<td><button onclick="editOrder(this.dataset.id)" data-id="'+o.id+'">تعديل</button> <button class="orange" onclick="printInvoice(this.dataset.id)" data-id="'+o.id+'">طباعة</button></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table>';
+}
+
 function renderCustomers(){const map={};for(const o of orders){if(!map[o.customer_name])map[o.customer_name]={total:0,paid:0,orders:0};const f=orderFinancials(o);map[o.customer_name].total+=f.orderValue;map[o.customer_name].paid+=f.paid;map[o.customer_name].orders++}el('customersTable').innerHTML='<table><thead><tr><th>العميل</th><th>الطلبات</th><th>قيمة الطلبات</th><th>المدفوع</th><th>عليه</th><th>له</th></tr></thead><tbody>'+Object.entries(map).map(([c,x])=>'<tr><td>'+esc(c)+'</td><td>'+x.orders+'</td><td>'+money(x.total)+'</td><td>'+money(x.paid)+'</td><td>'+money(Math.max(0,x.total-x.paid))+'</td><td>'+money(Math.max(0,x.paid-x.total))+'</td></tr>').join('')+'</tbody></table>'}
 function renderHome(){el('homeBooks').textContent=books.length;el('homeOrders').textContent=orders.length;el('homeMissing').textContent=orders.reduce((s,o)=>s+(o.order_items||[]).reduce((a,i)=>a+(Number(i.missing)||0),0),0);el('homePaid').textContent=money(orders.reduce((s,o)=>s+(Number(o.paid)||0),0))}
 document.addEventListener('click',e=>{document.querySelectorAll('.suggest').forEach(x=>{if(!x.contains(e.target)&&!x.parentElement.contains(e.target))x.classList.add('hidden')})});
 (async()=>{try{await refreshAll();setupRealtime();show('home')}catch(e){console.error(e);setConnection(false,'تعذر الاتصال')}})();
 
+
+
 function printInvoice(orderId){
   const o=orders.find(x=>x.id===orderId);
-  if(!o){alert('الطلب غير موجود');return;}
+  if(!o){alert('الطلب غير موجود');return}
 
   const f=orderFinancials(o);
+
   const rows=(o.order_items||[]).map(it=>{
     const qty=Math.max(0,Number(it.quantity)||0);
     const unit=Number(it.unit_price)||0;
     const delivered=Math.min(qty,Math.max(0,Number(it.delivered_qty)||0));
-    return '<tr><td>'+esc(it.books?.name||'')+'</td><td>'+qty+'</td><td>'+money(unit)+'</td><td>'+money(qty*unit)+'</td><td>'+delivered+' / '+qty+'</td></tr>';
+    return '<tr>'+
+      '<td>'+esc(it.books?.name||'')+'</td>'+
+      '<td>'+qty+'</td>'+
+      '<td>'+money(unit)+'</td>'+
+      '<td>'+money(qty*unit)+'</td>'+
+      '<td>'+delivered+' / '+qty+'</td>'+
+    '</tr>';
   }).join('');
 
-  const area=el('printArea');
-  if(!area){alert('تعذر تجهيز الفاتورة للطباعة');return;}
-
-  area.innerHTML=
-    '<div class="title"><h1>فاتورة طلب</h1><div>نظام المكتبة</div></div>'+
+  const invoiceHtml='<!doctype html><html lang="ar" dir="rtl"><head>'+
+    '<meta charset="utf-8">'+
+    '<title>فاتورة الطلب #'+esc(o.order_no)+'</title>'+
+    '<style>'+
+      '@page{margin:10mm}'+
+      '*{box-sizing:border-box}'+
+      'body{margin:0;background:#fff;color:#111;font-family:"Segoe UI",Tahoma,Arial,sans-serif;padding:18px}'+
+      '.title{text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:14px}'+
+      '.title h1{margin:0;font-size:27px}'+
+      '.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}'+
+      '.meta div{border:1px solid #ccc;padding:7px;border-radius:5px}'+
+      'table{width:100%;border-collapse:collapse}'+
+      'th,td{border:1px solid #bbb;padding:7px;text-align:right}'+
+      'th{background:#f1f1f1}'+
+      '.totals{width:360px;margin:15px 0 0 auto}'+
+      '.totals div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ddd}'+
+      '.due{color:#c9344e;font-weight:800}'+
+      '.credit{color:#16895a;font-weight:800}'+
+      '.footer{text-align:center;margin-top:20px;color:#666;font-size:11px}'+
+      '@media print{body{padding:0}}'+
+    '</style></head><body>'+
+    '<div class="title"><h1>فاتورة طلب</h1></div>'+
     '<div class="meta">'+
       '<div><b>رقم الطلب:</b> '+o.order_no+'</div>'+
       '<div><b>العميل:</b> '+esc(o.customer_name||'')+'</div>'+
       '<div><b>التاريخ:</b> '+new Date(o.created_at).toLocaleString('ar-EG')+'</div>'+
       '<div><b>الحالة:</b> '+(f.remaining<=0?'تم التسليم بالكامل':'لم يكتمل التسليم')+'</div>'+
     '</div>'+
-    '<table><thead><tr><th>الكتاب</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>المسلّم</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<table><thead><tr><th>الكتاب</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>المسلّم</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table>'+
     '<div class="totals">'+
       '<div><span>المدفوع</span><b>'+money(f.paid)+'</b></div>'+
       '<div><span>قيمة الطلب</span><b>'+money(f.orderValue)+'</b></div>'+
@@ -387,17 +579,37 @@ function printInvoice(orderId){
       '<div class="'+(f.credit>0?'credit':'')+'"><span>له الآن</span><b>'+money(f.credit)+'</b></div>'+
     '</div>'+
     (o.notes?'<div style="margin-top:10px"><b>ملاحظات:</b> '+esc(o.notes)+'</div>':'')+
-    '<div class="footer">شكرًا لتعاملكم معنا</div>';
+    '<div class="footer">شكرًا لتعاملكم معنا</div>'+
+    '</body></html>';
 
-  const oldTitle=document.title;
-  document.title='فاتورة الطلب #'+o.order_no;
+  // Open a blank document. The printed document is not the GitHub Pages URL.
+  const w=window.open('', '_blank', 'width=900,height=700');
+  if(!w){
+    alert('المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع.');
+    return;
+  }
 
-  setTimeout(()=>{
-    window.print();
-    setTimeout(()=>{document.title=oldTitle;area.innerHTML='';},500);
-  },100);
+  w.document.open();
+  w.document.write(invoiceHtml);
+  w.document.close();
+  w.focus();
+
+  const doPrint=()=>{
+    try{
+      w.print();
+    }catch(err){
+      alert('تعذر فتح الطباعة: '+(err.message||err));
+    }
+  };
+
+  if(w.document.readyState==='complete'){
+    setTimeout(doPrint,200);
+  }else{
+    w.addEventListener('load',()=>setTimeout(doPrint,200),{once:true});
+  }
 }
 
 </script>
-<div id="printArea" aria-hidden="true"></div></body>
+<div id="printArea" aria-hidden="true"></div>
+</body>
 </html>
