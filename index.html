@@ -13,7 +13,7 @@
 
 
 #printArea{display:none}
-@page{margin:10mm}
+@page{size:A5 portrait;margin:8mm}
 @media print{
   body{background:#fff!important}
   body>header, body>.wrap{display:none!important}
@@ -42,6 +42,10 @@
   #printArea .footer{text-align:center;margin-top:18px;color:#666;font-size:11px}
 }
 
+
+.receive-toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px}
+.receive-toggle input{width:18px;height:18px;accent-color:#16895a}
+.receive-toggle span{font-weight:700}
 </style>
 </head>
 <body>
@@ -484,34 +488,102 @@ function renderInventory(){el('inventoryTable').innerHTML='<table><thead><tr><th
 async function deleteBook(id){const b=books.find(x=>x.id===id);if(!b)return;if(!confirm('مسح الكتاب «'+b.name+'» من المخزن؟'))return;try{const {error}=await db.rpc('delete_library_book',{p_book_id:id});if(error)throw error;clearInventoryForm();await refreshAll();alert('تم مسح الكتاب')}catch(e){alert('تعذر مسح الكتاب: '+e.message)}}
 function renderMissing(){const map={};for(const o of orders)for(const i of o.order_items||[]){if(!(Number(i.missing)>0))continue;if(!map[i.book_id])map[i.book_id]={name:i.books?.name||'',total:0,clients:{}};map[i.book_id].total+=Number(i.missing);map[i.book_id].clients[o.customer_name]=(map[i.book_id].clients[o.customer_name]||0)+Number(i.missing)}el('missingTable').innerHTML='<table><thead><tr><th>الكتاب</th><th>الناقص</th><th>حسب العميل</th></tr></thead><tbody>'+Object.values(map).map(x=>'<tr class="dangerrow"><td>'+esc(x.name)+'</td><td>'+x.total+'</td><td>'+Object.entries(x.clients).map(([c,q])=>esc(c)+': '+q).join('<br>')+'</td></tr>').join('')+'</tbody></table>'}
 function renderCompleted(){
-  const q=(el('completedSearch')?.value||'').toLowerCase();
+  const box=el('completedTable');
+  if(!box)return;
+
+  let search=el('completedSearch');
+  if(!search){
+    box.innerHTML=
+      '<input id="completedSearch" placeholder="ابحث برقم الطلب أو اسم العميل">'+
+      '<div id="completedResults"></div>';
+    search=el('completedSearch');
+    search.addEventListener('input',renderCompletedResults);
+  }
+
+  renderCompletedResults();
+}
+
+function renderCompletedResults(){
+  const target=el('completedResults');
+  if(!target)return;
+
+  const searchValue=(el('completedSearch')?.value||'').trim().toLowerCase();
   const rows=orders.filter(o=>
     isOrderFullyDelivered(o) &&
-    (String(o.order_no).includes(q)||(o.customer_name||'').toLowerCase().includes(q))
+    (String(o.order_no).includes(searchValue) ||
+     (o.customer_name||'').toLowerCase().includes(searchValue))
   );
 
-  el('completedTable').innerHTML=
-    '<input id="completedSearch" placeholder="ابحث برقم الطلب أو اسم العميل" value="'+esc(el('completedSearch')?.value||'')+'" oninput="renderCompleted()">'+
-    '<table><thead><tr><th>الطلب</th><th>العميل</th><th>الكتب</th><th>قيمة الطلب</th><th>المدفوع</th><th>الحساب</th><th>الفاتورة</th></tr></thead><tbody>'+
+  target.innerHTML=
+    '<table><thead><tr>'+
+    '<th>الطلب</th><th>العميل</th><th>الكتب</th>'+
+    '<th>قيمة الطلب</th><th>المدفوع</th><th>الحساب</th><th>الاستلام</th><th>إجراءات</th>'+
+    '</tr></thead><tbody>'+
     rows.map(o=>{
       const f=orderFinancials(o);
-      const books=(o.order_items||[]).map(i=>esc(i.books?.name||'')+' × '+Number(i.quantity||0)).join('<br>');
-      const balance=f.due>0
+
+      const books=(o.order_items||[]).map(i=>{
+        const qty=Number(i.quantity||0);
+        const delivered=Math.min(qty,Number(i.delivered_qty||0));
+        return '<div class="bookline">'+
+          '<div><b>'+esc(i.books?.name||'')+'</b> × '+qty+'</div>'+
+          '<div class="delivery-tools">'+
+            '<label class="receive-toggle">'+
+              '<input type="checkbox" '+(delivered>=qty?'checked':'')+
+              ' data-receive-item="'+i.id+'" '+(delivered>=qty?'':'')+
+              ' onchange="confirmCompletedReceipt(this)">'+
+              '<span>استلم العميل</span>'+
+            '</label>'+
+            '<span class="pill">المسلّم '+delivered+'/'+qty+'</span>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+
+      const due=f.due>0
         ? '<span class="negative">عليه '+money(f.due)+'</span>'
         : f.credit>0
           ? '<span class="positive">له '+money(f.credit)+'</span>'
           : '<span class="ok">متساوي</span>';
+
       return '<tr>'+
         '<td>'+o.order_no+'</td>'+
         '<td>'+esc(o.customer_name||'')+'</td>'+
         '<td>'+books+'</td>'+
         '<td>'+money(f.orderValue)+'</td>'+
         '<td>'+money(f.paid)+'</td>'+
-        '<td>'+balance+'</td>'+
-        '<td><button onclick="editOrder(this.dataset.id)" data-id="'+o.id+'">تعديل</button> <button class="orange" onclick="printInvoice(this.dataset.id)" data-id="'+o.id+'">طباعة</button></td>'+
+        '<td>'+due+'</td>'+
+        '<td><span class="ok">تم التسليم</span></td>'+
+        '<td>'+
+          '<button onclick="editOrder(this.dataset.id)" data-id="'+o.id+'">تعديل</button> '+
+          '<button class="orange" onclick="printInvoice(this.dataset.id)" data-id="'+o.id+'">طباعة</button>'+
+        '</td>'+
       '</tr>';
     }).join('')+
     '</tbody></table>';
+}
+
+async function confirmCompletedReceipt(box){
+  const itemId=box.dataset.receiveItem;
+  if(!itemId)return;
+
+  const item=(orders||[]).flatMap(o=>o.order_items||[]).find(i=>i.id===itemId);
+  if(!item)return;
+
+  const qty=Math.max(0,Number(item.quantity)||0);
+
+  try{
+    box.disabled=true;
+    const {error}=await db.rpc('set_library_delivery',{
+      p_order_item_id:itemId,
+      p_delivered_qty:box.checked?qty:0
+    });
+    if(error)throw error;
+    await refreshAll();
+  }catch(e){
+    box.checked=!box.checked;
+    box.disabled=false;
+    alert('تعذر تحديث استلام الكتاب: '+(e.message||e));
+  }
 }
 
 function renderCustomers(){const map={};for(const o of orders){if(!map[o.customer_name])map[o.customer_name]={total:0,paid:0,orders:0};const f=orderFinancials(o);map[o.customer_name].total+=f.orderValue;map[o.customer_name].paid+=f.paid;map[o.customer_name].orders++}el('customersTable').innerHTML='<table><thead><tr><th>العميل</th><th>الطلبات</th><th>قيمة الطلبات</th><th>المدفوع</th><th>عليه</th><th>له</th></tr></thead><tbody>'+Object.entries(map).map(([c,x])=>'<tr><td>'+esc(c)+'</td><td>'+x.orders+'</td><td>'+money(x.total)+'</td><td>'+money(x.paid)+'</td><td>'+money(Math.max(0,x.total-x.paid))+'</td><td>'+money(Math.max(0,x.paid-x.total))+'</td></tr>').join('')+'</tbody></table>'}
@@ -521,12 +593,12 @@ document.addEventListener('click',e=>{document.querySelectorAll('.suggest').forE
 
 
 
+
 function printInvoice(orderId){
   const o=orders.find(x=>x.id===orderId);
   if(!o){alert('الطلب غير موجود');return}
 
   const f=orderFinancials(o);
-
   const rows=(o.order_items||[]).map(it=>{
     const qty=Math.max(0,Number(it.quantity)||0);
     const unit=Number(it.unit_price)||0;
@@ -540,33 +612,32 @@ function printInvoice(orderId){
     '</tr>';
   }).join('');
 
-  const invoiceHtml='<!doctype html><html lang="ar" dir="rtl"><head>'+
+  const doc='<!doctype html><html lang="ar" dir="rtl"><head>'+
     '<meta charset="utf-8">'+
-    '<title>فاتورة الطلب #'+esc(o.order_no)+'</title>'+
+    '<title>فاتورة #'+esc(o.order_no)+'</title>'+
     '<style>'+
-      '@page{margin:10mm}'+
+      '@page{size:A5 portrait;margin:8mm}'+
       '*{box-sizing:border-box}'+
-      'body{margin:0;background:#fff;color:#111;font-family:"Segoe UI",Tahoma,Arial,sans-serif;padding:18px}'+
-      '.title{text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:14px}'+
-      '.title h1{margin:0;font-size:27px}'+
-      '.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}'+
-      '.meta div{border:1px solid #ccc;padding:7px;border-radius:5px}'+
+      'body{margin:0;background:#fff;color:#111;font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:12px}'+
+      '.title{text-align:center;border-bottom:1.5px solid #222;padding-bottom:7px;margin-bottom:10px}'+
+      '.title h1{margin:0;font-size:20px}'+
+      '.meta{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px}'+
+      '.meta div{border:1px solid #ccc;padding:5px;border-radius:4px}'+
       'table{width:100%;border-collapse:collapse}'+
-      'th,td{border:1px solid #bbb;padding:7px;text-align:right}'+
-      'th{background:#f1f1f1}'+
-      '.totals{width:360px;margin:15px 0 0 auto}'+
-      '.totals div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ddd}'+
-      '.due{color:#c9344e;font-weight:800}'+
-      '.credit{color:#16895a;font-weight:800}'+
-      '.footer{text-align:center;margin-top:20px;color:#666;font-size:11px}'+
-      '@media print{body{padding:0}}'+
+      'th,td{border:1px solid #aaa;padding:5px;text-align:right}'+
+      'th{background:#eee}'+
+      '.totals{margin-top:10px}'+
+      '.totals div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #ddd}'+
+      '.due{font-weight:800}.credit{font-weight:800}'+
+      '.footer{text-align:center;margin-top:12px;font-size:10px;color:#555}'+
+      '@media print{body{width:100%}}'+
     '</style></head><body>'+
     '<div class="title"><h1>فاتورة طلب</h1></div>'+
     '<div class="meta">'+
       '<div><b>رقم الطلب:</b> '+o.order_no+'</div>'+
       '<div><b>العميل:</b> '+esc(o.customer_name||'')+'</div>'+
       '<div><b>التاريخ:</b> '+new Date(o.created_at).toLocaleString('ar-EG')+'</div>'+
-      '<div><b>الحالة:</b> '+(f.remaining<=0?'تم التسليم بالكامل':'لم يكتمل التسليم')+'</div>'+
+      '<div><b>الحالة:</b> '+(f.remaining<=0?'تم التسليم بالكامل':'غير مكتمل')+'</div>'+
     '</div>'+
     '<table><thead><tr><th>الكتاب</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>المسلّم</th></tr></thead>'+
     '<tbody>'+rows+'</tbody></table>'+
@@ -575,38 +646,27 @@ function printInvoice(orderId){
       '<div><span>قيمة الطلب</span><b>'+money(f.orderValue)+'</b></div>'+
       '<div><span>قيمة المُسلَّم</span><b>'+money(f.deliveredValue)+'</b></div>'+
       '<div><span>المتبقي</span><b>'+money(f.remaining)+'</b></div>'+
-      '<div class="'+(f.due>0?'due':'')+'"><span>عليه الآن</span><b>'+money(f.due)+'</b></div>'+
-      '<div class="'+(f.credit>0?'credit':'')+'"><span>له الآن</span><b>'+money(f.credit)+'</b></div>'+
+      '<div class="due"><span>عليه الآن</span><b>'+money(f.due)+'</b></div>'+
+      '<div class="credit"><span>له الآن</span><b>'+money(f.credit)+'</b></div>'+
     '</div>'+
-    (o.notes?'<div style="margin-top:10px"><b>ملاحظات:</b> '+esc(o.notes)+'</div>':'')+
+    (o.notes?'<div style="margin-top:8px"><b>ملاحظات:</b> '+esc(o.notes)+'</div>':'')+
     '<div class="footer">شكرًا لتعاملكم معنا</div>'+
     '</body></html>';
 
-  // Open a blank document. The printed document is not the GitHub Pages URL.
-  const w=window.open('', '_blank', 'width=900,height=700');
+  const w=window.open('about:blank','_blank','width=700,height=850');
   if(!w){
     alert('المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع.');
     return;
   }
 
   w.document.open();
-  w.document.write(invoiceHtml);
+  w.document.write(doc);
   w.document.close();
   w.focus();
 
-  const doPrint=()=>{
-    try{
-      w.print();
-    }catch(err){
-      alert('تعذر فتح الطباعة: '+(err.message||err));
-    }
-  };
-
-  if(w.document.readyState==='complete'){
-    setTimeout(doPrint,200);
-  }else{
-    w.addEventListener('load',()=>setTimeout(doPrint,200),{once:true});
-  }
+  setTimeout(()=>{
+    w.print();
+  },300);
 }
 
 </script>
