@@ -517,7 +517,7 @@ function renderCompletedResults(){
   target.innerHTML=
     '<table><thead><tr>'+
     '<th>الطلب</th><th>العميل</th><th>الكتب</th>'+
-    '<th>قيمة الطلب</th><th>المدفوع</th><th>الحساب</th><th>الاستلام</th><th>إجراءات</th>'+
+    '<th>قيمة الطلب</th><th>المدفوع</th><th>قيمة المُسلَّم</th><th>عليه الآن</th><th>له الآن</th><th>الاستلام</th><th>إجراءات</th>'+
     '</tr></thead><tbody>'+
     rows.map(o=>{
       const f=orderFinancials(o);
@@ -550,8 +550,10 @@ function renderCompletedResults(){
         '<td>'+esc(o.customer_name||'')+'</td>'+
         '<td>'+books+'</td>'+
         '<td>'+money(f.orderValue)+'</td>'+
-        '<td>'+money(f.paid)+'</td>'+
-        '<td>'+due+'</td>'+
+        '<td><b>'+money(f.paid)+'</b></td>'+
+        '<td>'+money(f.deliveredValue)+'</td>'+
+        '<td>'+(f.due>0?'<span class="negative">عليه '+money(f.due)+'</span>':'<span class="ok">0.00</span>')+'</td>'+
+        '<td>'+(f.credit>0?'<span class="positive">له '+money(f.credit)+'</span>':'<span class="ok">0.00</span>')+'</td>'+
         '<td><span class="ok">تم التسليم</span></td>'+
         '<td>'+
           '<button onclick="editOrder(this.dataset.id)" data-id="'+o.id+'">تعديل</button> '+
